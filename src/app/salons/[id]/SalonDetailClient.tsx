@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { salons } from '@/data/salons';
-import { services } from '@/data/services';
-import { Service } from '@/types';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Salon, Service } from '@/types';
 
 interface SalonDetailClientProps {
     id: string;
 }
 
 export default function SalonDetailClient({ id }: SalonDetailClientProps) {
-    const salon = salons.find(s => s.id === id);
+    const [salon, setSalon] = useState<Salon | null>(null);
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedServices, setSelectedServices] = useState<string[]>([]);
     const [formData, setFormData] = useState({
         name: '',
@@ -21,25 +23,46 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
         time: '',
     });
 
-    if (!salon) {
-        return (
-            <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
-                <h1>Salon not found</h1>
-                <p>ID: {id}</p>
-            </div>
-        );
-    }
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch Salon
+                const salonDoc = await getDoc(doc(db, 'salons', id));
+                if (salonDoc.exists()) {
+                    setSalon({ id: salonDoc.id, ...salonDoc.data() } as Salon);
+                }
 
-    const availableServices = services.filter(service =>
-        salon.services.includes(service.id)
-    );
+                // Fetch All Services
+                const servicesSnapshot = await getDocs(collection(db, 'services'));
+                const servicesData = servicesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as Service[];
+                setServices(servicesData);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [id]);
+
+    const availableServices = useMemo(() => {
+        if (!salon || !services.length) return [];
+        // Match services by name (case-insensitive) since we stored names in salon.services
+        return services.filter(service =>
+            salon.services.some(s => s.toLowerCase() === service.name.toLowerCase())
+        );
+    }, [salon, services]);
 
     const total = useMemo(() => {
         return selectedServices.reduce((sum, serviceId) => {
             const service = services.find(s => s.id === serviceId);
             return sum + (service?.price || 0);
         }, 0);
-    }, [selectedServices]);
+    }, [selectedServices, services]);
 
     const handleAddService = (serviceId: string) => {
         if (!selectedServices.includes(serviceId)) {
@@ -57,6 +80,8 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
             alert('Please select at least one service');
             return;
         }
+
+        if (!salon) return;
 
         try {
             // Prepare selected services data
@@ -76,12 +101,25 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
                 customerEmail: formData.email,
                 customerPhone: formData.phone,
                 salonName: salon.name,
-                salonId: salon.id,  // Add salon ID for Firestore
+                salonId: salon.id,
                 services: selectedServicesData,
                 date: formData.date,
                 time: formData.time,
                 totalAmount: total,
+                status: 'pending', // Default status
+                createdAt: new Date().toISOString(),
             };
+
+            // Save to Firestore (via API or direct)
+            // For now, we'll stick to the existing API route which handles email
+            // But we should also likely save to Firestore 'bookings' collection directly here or in the API
+            // The API route /api/send-booking-email likely just sends email.
+            // Let's check if we need to save to Firestore here.
+            // The Admin Bookings page reads from 'bookings' collection.
+            // So we MUST save to Firestore here.
+
+            const { addDoc, collection } = await import('firebase/firestore');
+            await addDoc(collection(db, 'bookings'), bookingData);
 
             // Send emails via API route
             const response = await fetch('/api/send-booking-email', {
@@ -94,7 +132,6 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
 
             if (response.ok) {
                 alert('🎉 Booking confirmed! Check your email for confirmation details.');
-                // Reset form
                 setFormData({
                     name: '',
                     email: '',
@@ -104,11 +141,12 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
                 });
                 setSelectedServices([]);
             } else {
-                throw new Error('Failed to send confirmation emails');
+                console.error('Email sending failed');
+                alert('Booking saved, but email confirmation failed.');
             }
         } catch (error) {
             console.error('Error submitting booking:', error);
-            alert('Booking submitted but there was an issue sending confirmation emails. We will contact you shortly.');
+            alert('Failed to submit booking. Please try again.');
         }
     };
 
@@ -116,6 +154,23 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
+
+    if (loading) {
+        return (
+            <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
+                <div className="loading-spinner">Loading salon details...</div>
+            </div>
+        );
+    }
+
+    if (!salon) {
+        return (
+            <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
+                <h1>Salon not found</h1>
+                <p>The requested salon could not be found.</p>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -149,36 +204,40 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
                                 <h2>Available Services</h2>
                             </div>
 
-                            <div className="services-list">
-                                {availableServices.map(service => (
-                                    <div key={service.id} className="service-item">
-                                        <div className="service-item-content">
-                                            <h3 className="service-item-name">{service.name}</h3>
-                                            <p className="service-item-duration">{service.duration} min</p>
+                            {availableServices.length === 0 ? (
+                                <p>No services listed for this salon.</p>
+                            ) : (
+                                <div className="services-list">
+                                    {availableServices.map(service => (
+                                        <div key={service.id} className="service-item">
+                                            <div className="service-item-content">
+                                                <h3 className="service-item-name">{service.name}</h3>
+                                                <p className="service-item-duration">{service.duration} min</p>
+                                            </div>
+                                            <div className="service-item-actions">
+                                                <span className="service-item-price">₹{service.price}</span>
+                                                {selectedServices.includes(service.id) ? (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-remove"
+                                                        onClick={() => handleRemoveService(service.id)}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-add"
+                                                        onClick={() => handleAddService(service.id)}
+                                                    >
+                                                        Add
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="service-item-actions">
-                                            <span className="service-item-price">₹{service.price}</span>
-                                            {selectedServices.includes(service.id) ? (
-                                                <button
-                                                    type="button"
-                                                    className="btn-remove"
-                                                    onClick={() => handleRemoveService(service.id)}
-                                                >
-                                                    Remove
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    className="btn-add"
-                                                    onClick={() => handleAddService(service.id)}
-                                                >
-                                                    Add
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Side - Booking Form */}

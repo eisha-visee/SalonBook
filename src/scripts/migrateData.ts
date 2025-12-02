@@ -34,6 +34,7 @@ async function migrateData() {
 }
 
 // Uncomment the line below and run this file to migrate data
-// migrateData();
+migrateData();
 
 export default migrateData;
+
