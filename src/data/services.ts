@@ -1,0 +1,55 @@
+import { Service } from '@/types';
+
+export const services: Service[] = [
+    {
+        id: 'haircut',
+        name: 'Haircut & Styling',
+        description: 'Professional haircut and styling tailored to your preferences',
+        duration: 60,
+        price: 800,
+        imageUrl: '/salon-1.jpg',
+        isPopular: true,
+    },
+    {
+        id: 'hair-coloring',
+        name: 'Hair Coloring',
+        description: 'Expert hair coloring with premium products',
+        duration: 120,
+        price: 2500,
+        imageUrl: '/salon-2.jpg',
+        isPopular: true,
+    },
+    {
+        id: 'spa-treatment',
+        name: 'Spa Treatment',
+        description: 'Relaxing spa treatment for complete rejuvenation',
+        duration: 90,
+        price: 3000,
+        imageUrl: '/salon-3.jpg',
+    },
+    {
+        id: 'manicure-pedicure',
+        name: 'Manicure & Pedicure',
+        description: 'Complete nail care with premium polish',
+        duration: 75,
+        price: 1200,
+        imageUrl: '/salon-4.jpg',
+        isPopular: true,
+    },
+    {
+        id: 'makeup',
+        name: 'Professional Makeup',
+        description: 'Bridal and party makeup by expert artists',
+        duration: 90,
+        price: 3500,
+        imageUrl: '/salon-5.jpg',
+    },
+    {
+        id: 'facial',
+        name: 'Facial Treatment',
+        description: 'Deep cleansing facial for glowing skin',
+        duration: 60,
+        price: 1800,
+        imageUrl: '/salon-6.jpg',
+    },
+];
