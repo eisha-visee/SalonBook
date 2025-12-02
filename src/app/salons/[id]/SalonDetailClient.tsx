@@ -51,14 +51,65 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
         setSelectedServices(selectedServices.filter(id => id !== serviceId));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (selectedServices.length === 0) {
             alert('Please select at least one service');
             return;
         }
-        console.log('Booking:', { ...formData, services: selectedServices, total });
-        alert('Booking confirmed! We will contact you shortly.');
+
+        try {
+            // Prepare selected services data
+            const selectedServicesData = selectedServices.map(serviceId => {
+                const service = services.find(s => s.id === serviceId);
+                return {
+                    id: service?.id,
+                    name: service?.name,
+                    price: service?.price,
+                    duration: service?.duration,
+                };
+            });
+
+            // Prepare booking data
+            const bookingData = {
+                customerName: formData.name,
+                customerEmail: formData.email,
+                customerPhone: formData.phone,
+                salonName: salon.name,
+                salonId: salon.id,  // Add salon ID for Firestore
+                services: selectedServicesData,
+                date: formData.date,
+                time: formData.time,
+                totalAmount: total,
+            };
+
+            // Send emails via API route
+            const response = await fetch('/api/send-booking-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookingData),
+            });
+
+            if (response.ok) {
+                alert('🎉 Booking confirmed! Check your email for confirmation details.');
+                // Reset form
+                setFormData({
+                    name: '',
+                    email: '',
+                    phone: '',
+                    date: '',
+                    time: '',
+                });
+                setSelectedServices([]);
+            } else {
+                throw new Error('Failed to send confirmation emails');
+            }
+        } catch (error) {
+            console.error('Error submitting booking:', error);
+            alert('Booking submitted but there was an issue sending confirmation emails. We will contact you shortly.');
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
