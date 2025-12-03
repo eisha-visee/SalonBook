@@ -105,80 +105,85 @@ export default function EmployeesPage() {
         }
     };
 
-    const columns = [
-        {
-            header: 'Name',
-            accessor: (row: Employee) => <strong>{row.name}</strong>,
-            sortable: true,
-        },
-        {
-            header: 'Role',
-            accessor: (row: Employee) => <span className="role-badge">{row.role}</span>,
-            sortable: true,
-        },
-        {
-            header: 'Contact',
-            accessor: (row: Employee) => (
-                <div className="contact-info">
-                    <div>📧 {row.email}</div>
-                    <small>📱 {row.phone}</small>
-                </div>
-            ),
-        },
-        {
-            header: 'Specialties',
-            accessor: (row: Employee) => (
-                <div className="specialties-list">
-                    {row.specialties?.slice(0, 2).map((specialty, idx) => (
-                        <span key={idx} className="specialty-tag">
-                            {specialty}
-                        </span>
-                    ))}
-                    {row.specialties?.length > 2 && (
-                        <span className="specialty-tag more">
-                            +{row.specialties.length - 2}
-                        </span>
-                    )}
-                </div>
-            ),
-        },
-        {
-            header: 'Schedule',
-            accessor: 'workSchedule',
-            className: 'schedule-cell',
-        },
-        {
-            header: 'Bookings',
-            accessor: 'totalBookings',
-            sortable: true,
-            className: 'booking-count',
-        },
-        {
-            header: 'Rating',
-            accessor: (row: Employee) => (
-                <div className="rating-cell">
-                    <span className="rating-star">★</span>
-                    <span>{row.rating}</span>
-                </div>
-            ),
-            sortable: true,
-        },
-        {
-            header: 'Status',
-            accessor: (row: Employee) => (
-                <select
-                    value={row.status}
-                    onChange={(e) => handleUpdateStatus(row.id, e.target.value as any)}
-                    className={`status-badge ${getStatusBadgeClass(row.status)}`}
-                >
-                    <option value="available">Available</option>
-                    <option value="busy">Busy</option>
-                    <option value="off-duty">Off Duty</option>
-                </select>
-            ),
-            sortable: true,
-        },
-    ];
+    const columns: Array<{
+        header: string;
+        accessor: keyof Employee | ((row: Employee) => React.ReactNode);
+        sortable?: boolean;
+        className?: string;
+    }> = [
+            {
+                header: 'Name',
+                accessor: (row: Employee) => <strong>{row.name}</strong>,
+                sortable: true,
+            },
+            {
+                header: 'Role',
+                accessor: (row: Employee) => <span className="role-badge">{row.role}</span>,
+                sortable: true,
+            },
+            {
+                header: 'Contact',
+                accessor: (row: Employee) => (
+                    <div className="contact-info">
+                        <div>📧 {row.email}</div>
+                        <small>📱 {row.phone}</small>
+                    </div>
+                ),
+            },
+            {
+                header: 'Specialties',
+                accessor: (row: Employee) => (
+                    <div className="specialties-list">
+                        {row.specialties?.slice(0, 2).map((specialty, idx) => (
+                            <span key={idx} className="specialty-tag">
+                                {specialty}
+                            </span>
+                        ))}
+                        {row.specialties?.length > 2 && (
+                            <span className="specialty-tag more">
+                                +{row.specialties.length - 2}
+                            </span>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                header: 'Schedule',
+                accessor: 'workSchedule',
+                className: 'schedule-cell',
+            },
+            {
+                header: 'Bookings',
+                accessor: 'totalBookings',
+                sortable: true,
+                className: 'booking-count',
+            },
+            {
+                header: 'Rating',
+                accessor: (row: Employee) => (
+                    <div className="rating-cell">
+                        <span className="rating-star">★</span>
+                        <span>{row.rating}</span>
+                    </div>
+                ),
+                sortable: true,
+            },
+            {
+                header: 'Status',
+                accessor: (row: Employee) => (
+                    <select
+                        value={row.status}
+                        onChange={(e) => handleUpdateStatus(row.id, e.target.value as any)}
+                        className={`status-badge ${getStatusBadgeClass(row.status)}`}
+                    >
+                        <option value="available">Available</option>
+                        <option value="busy">Busy</option>
+                        <option value="off-duty">Off Duty</option>
+                    </select>
+                ),
+                sortable: true,
+            },
+        ];
 
     const actions = (row: Employee) => (
         <button

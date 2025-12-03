@@ -105,64 +105,69 @@ export default function ClientsPage() {
         }
     };
 
-    const columns = [
-        {
-            header: 'Client Name',
-            accessor: (row: Client) => <strong>{row.name}</strong>,
-            sortable: true,
-        },
-        {
-            header: 'Contact Info',
-            accessor: (row: Client) => (
-                <div className="contact-info">
-                    <div>📧 {row.email}</div>
-                    <small>📱 {row.phone}</small>
-                </div>
-            ),
-        },
-        {
-            header: 'Total Bookings',
-            accessor: 'totalBookings',
-            sortable: true,
-            className: 'booking-count',
-        },
-        {
-            header: 'Total Spent',
-            accessor: (row: Client) => <span className="amount">₹{row.totalSpent.toLocaleString()}</span>,
-            sortable: true,
-        },
-        {
-            header: 'Preferred Services',
-            accessor: (row: Client) => (
-                <div className="services-list">
-                    {row.preferredServices.slice(0, 2).map((service, idx) => (
-                        <span key={idx} className="service-tag">
-                            {service}
-                        </span>
-                    ))}
-                    {row.preferredServices.length > 2 && (
-                        <span className="service-tag more">
-                            +{row.preferredServices.length - 2}
-                        </span>
-                    )}
-                </div>
-            ),
-        },
-        {
-            header: 'Last Booking',
-            accessor: (row: Client) => row.lastBookingDate || 'N/A',
-            sortable: true,
-        },
-        {
-            header: 'Status',
-            accessor: (row: Client) => (
-                <span className={`status-badge ${row.status}`}>
-                    {row.status}
-                </span>
-            ),
-            sortable: true,
-        },
-    ];
+    const columns: Array<{
+        header: string;
+        accessor: keyof Client | ((row: Client) => React.ReactNode);
+        sortable?: boolean;
+        className?: string;
+    }> = [
+            {
+                header: 'Client Name',
+                accessor: (row: Client) => <strong>{row.name}</strong>,
+                sortable: true,
+            },
+            {
+                header: 'Contact Info',
+                accessor: (row: Client) => (
+                    <div className="contact-info">
+                        <div>📧 {row.email}</div>
+                        <small>📱 {row.phone}</small>
+                    </div>
+                ),
+            },
+            {
+                header: 'Total Bookings',
+                accessor: 'totalBookings',
+                sortable: true,
+                className: 'booking-count',
+            },
+            {
+                header: 'Total Spent',
+                accessor: (row: Client) => <span className="amount">₹{row.totalSpent.toLocaleString()}</span>,
+                sortable: true,
+            },
+            {
+                header: 'Preferred Services',
+                accessor: (row: Client) => (
+                    <div className="services-list">
+                        {row.preferredServices.slice(0, 2).map((service, idx) => (
+                            <span key={idx} className="service-tag">
+                                {service}
+                            </span>
+                        ))}
+                        {row.preferredServices.length > 2 && (
+                            <span className="service-tag more">
+                                +{row.preferredServices.length - 2}
+                            </span>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                header: 'Last Booking',
+                accessor: (row: Client) => row.lastBookingDate || 'N/A',
+                sortable: true,
+            },
+            {
+                header: 'Status',
+                accessor: (row: Client) => (
+                    <span className={`status-badge ${row.status}`}>
+                        {row.status}
+                    </span>
+                ),
+                sortable: true,
+            },
+        ];
 
     const actions = (row: Client) => (
         <div className="action-buttons">

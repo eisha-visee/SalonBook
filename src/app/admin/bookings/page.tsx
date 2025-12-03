@@ -108,94 +108,99 @@ export default function BookingsPage() {
         }
     };
 
-    const columns = [
-        {
-            header: 'Booking ID',
-            accessor: (row: Booking) => <span className="booking-id">{row.id.substring(0, 8)}</span>,
-            sortable: true,
-        },
-        {
-            header: 'Customer',
-            accessor: (row: Booking) => (
-                <div className="customer-info">
-                    <strong>{row.customerName}</strong>
-                </div>
-            ),
-            sortable: true,
-        },
-        {
-            header: 'Contact',
-            accessor: (row: Booking) => (
-                <div className="contact-info">
-                    <div>{row.customerEmail}</div>
-                    <small>{row.customerPhone}</small>
-                </div>
-            ),
-        },
-        {
-            header: 'Salon',
-            accessor: 'salonName',
-            sortable: true,
-        },
-        {
-            header: 'Services',
-            accessor: (row: Booking) => (
-                <div className="services-list">
-                    {row.services?.map((service, idx) => (
-                        <span key={idx} className="service-tag">
-                            {service.name}
-                        </span>
-                    ))}
-                </div>
-            ),
-        },
-        {
-            header: 'Date & Time',
-            accessor: (row: Booking) => (
-                <div className="datetime-info">
-                    <div>📅 {row.date}</div>
-                    <small>🕐 {row.time}</small>
-                </div>
-            ),
-            sortable: true,
-        },
-        {
-            header: 'Amount',
-            accessor: (row: Booking) => <span className="amount">₹{row.totalAmount}</span>,
-            sortable: true,
-        },
-        {
-            header: 'Status',
-            accessor: (row: Booking) => (
-                <select
-                    className="status-select"
-                    value={row.status}
-                    onChange={(e) => handleStatusChange(row.id, e.target.value)}
-                    style={{
-                        backgroundColor: getStatusColor(row.status),
-                        color: 'white'
-                    }}
-                >
-                    <option value="not_assigned">Not Assigned</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="pending">Pending</option>
-                    <option value="reschedule">Reschedule</option>
-                </select>
-            ),
-            sortable: true,
-        },
-        {
-            header: 'Employee',
-            accessor: (row: Booking) => row.assignedEmployeeName ? (
-                <span className="employee-badge">
-                    👤 {row.assignedEmployeeName}
-                </span>
-            ) : (
-                <span className="no-employee">Not assigned</span>
-            ),
-            sortable: true,
-        },
-    ];
+    const columns: Array<{
+        header: string;
+        accessor: keyof Booking | ((row: Booking) => React.ReactNode);
+        sortable?: boolean;
+        className?: string;
+    }> = [
+            {
+                header: 'Booking ID',
+                accessor: (row: Booking) => <span className="booking-id">{row.id.substring(0, 8)}</span>,
+                sortable: true,
+            },
+            {
+                header: 'Customer',
+                accessor: (row: Booking) => (
+                    <div className="customer-info">
+                        <strong>{row.customerName}</strong>
+                    </div>
+                ),
+                sortable: true,
+            },
+            {
+                header: 'Contact',
+                accessor: (row: Booking) => (
+                    <div className="contact-info">
+                        <div>{row.customerEmail}</div>
+                        <small>{row.customerPhone}</small>
+                    </div>
+                ),
+            },
+            {
+                header: 'Salon',
+                accessor: 'salonName',
+                sortable: true,
+            },
+            {
+                header: 'Services',
+                accessor: (row: Booking) => (
+                    <div className="services-list">
+                        {row.services?.map((service, idx) => (
+                            <span key={idx} className="service-tag">
+                                {service.name}
+                            </span>
+                        ))}
+                    </div>
+                ),
+            },
+            {
+                header: 'Date & Time',
+                accessor: (row: Booking) => (
+                    <div className="datetime-info">
+                        <div>📅 {row.date}</div>
+                        <small>🕐 {row.time}</small>
+                    </div>
+                ),
+                sortable: true,
+            },
+            {
+                header: 'Amount',
+                accessor: (row: Booking) => <span className="amount">₹{row.totalAmount}</span>,
+                sortable: true,
+            },
+            {
+                header: 'Status',
+                accessor: (row: Booking) => (
+                    <select
+                        className="status-select"
+                        value={row.status}
+                        onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                        style={{
+                            backgroundColor: getStatusColor(row.status),
+                            color: 'white'
+                        }}
+                    >
+                        <option value="not_assigned">Not Assigned</option>
+                        <option value="assigned">Assigned</option>
+                        <option value="pending">Pending</option>
+                        <option value="reschedule">Reschedule</option>
+                    </select>
+                ),
+                sortable: true,
+            },
+            {
+                header: 'Employee',
+                accessor: (row: Booking) => row.assignedEmployeeName ? (
+                    <span className="employee-badge">
+                        👤 {row.assignedEmployeeName}
+                    </span>
+                ) : (
+                    <span className="no-employee">Not assigned</span>
+                ),
+                sortable: true,
+            },
+        ];
 
     const actions = (row: Booking) => (
         <div className="action-buttons">
