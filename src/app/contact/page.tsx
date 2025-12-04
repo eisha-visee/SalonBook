@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import VoiceBooking from '@/components/VoiceBooking';
 
 export default function ContactPage() {
     const [isCallActive, setIsCallActive] = useState(false);
@@ -11,16 +12,16 @@ export default function ContactPage() {
     };
 
     const handleAICallClick = () => {
+        // Open AI voice assistant modal
         setIsCallActive(true);
-        // Fallback to phone call for now
-        setTimeout(() => {
-            handleCallClick();
-            setIsCallActive(false);
-        }, 1000);
     };
 
     return (
         <>
+            <VoiceBooking
+                isOpen={isCallActive}
+                onClose={() => setIsCallActive(false)}
+            />
             <div className="contact-page">
                 {/* Hero Section */}
                 <section className="contact-hero">
