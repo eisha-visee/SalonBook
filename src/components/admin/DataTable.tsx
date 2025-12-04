@@ -127,7 +127,7 @@ export default function DataTable<T extends { id: string | number }>({
                             />
                         </div>
                     )}
-                    {onExport || <button onClick={handleExport} className="btn-export">
+                    {!onExport && <button onClick={handleExport} className="btn-export">
                         📥 Export CSV
                     </button>}
                 </div>

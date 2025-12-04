@@ -38,8 +38,8 @@ export default function ServicesManagementPage() {
         try {
             const servicesSnapshot = await getDocs(collection(db, 'services'));
             const servicesData: Service[] = servicesSnapshot.docs.map(doc => ({
+                ...doc.data(),
                 id: doc.id,
-                ...doc.data()
             } as Service));
 
             setServices(servicesData);

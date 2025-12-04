@@ -50,8 +50,8 @@ export default function SalonsManagementPage() {
         try {
             const salonsSnapshot = await getDocs(collection(db, 'salons'));
             const salonsData: Salon[] = salonsSnapshot.docs.map(doc => ({
+                ...doc.data(),
                 id: doc.id,
-                ...doc.data()
             } as Salon));
 
             setSalons(salonsData);

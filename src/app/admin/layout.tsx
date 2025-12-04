@@ -70,24 +70,8 @@ export default function AdminLayout({
 
                 <main className="admin-main">
                     <header className="admin-header">
-                        <div className="admin-header-logo">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M20 14c0 5-4 7-9 7s-9-2-9-7 4-9 9-9 9 4 9 9Z" />
-                                <path d="M2 14h20" />
-                            </svg>
-                            <span className="admin-logo-text">SalonBook</span>
-                        </div>
-
-                        <div className="admin-search-bar">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" />
-                                <path d="m21 21-4.35-4.35" />
-                            </svg>
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className="admin-search-input"
-                            />
+                        <div className="header-title">
+                            <h2>Admin Panel</h2>
                         </div>
 
                         <div className="admin-user-profile">

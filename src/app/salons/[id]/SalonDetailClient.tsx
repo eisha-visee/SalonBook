@@ -51,9 +51,9 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
 
     const availableServices = useMemo(() => {
         if (!salon || !services.length) return [];
-        // Match services by name (case-insensitive) since we stored names in salon.services
+        // Match services by ID since salon.services contains service IDs like 'haircut', 'facial'
         return services.filter(service =>
-            salon.services.some(s => s.toLowerCase() === service.name.toLowerCase())
+            salon.services.some(s => s.toLowerCase() === service.id.toLowerCase())
         );
     }, [salon, services]);
 
