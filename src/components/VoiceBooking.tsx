@@ -10,25 +10,7 @@ interface VoiceBookingProps {
     onClose: () => void;
 }
 
-type ConversationStep =
-    | 'welcome'
-    | 'name'
-    | 'email'
-    | 'phone'
-    | 'salon'
-    | 'service'
-    | 'date'
-    | 'time'
-    | 'confirm'
-    | 'complete';
-
-// Extend window for SpeechRecognition
-declare global {
-    interface Window {
-        webkitSpeechRecognition: any;
-        SpeechRecognition: any;
-    }
-}
+type ConversationStep = 'welcome' | 'name' | 'email' | 'phone' | 'salon' | 'service' | 'date' | 'time' | 'confirm' | 'complete';
 
 export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
     const [isListening, setIsListening] = useState(false);
@@ -37,9 +19,9 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
     const [messages, setMessages] = useState<Array<{ role: 'bot' | 'user'; text: string }>>([]);
     const [error, setError] = useState<string | null>(null);
 
-    const recognitionRef = useRef<any>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
 
-    // Conversation prompts
     const stepPrompts: Record<ConversationStep, string> = {
         welcome: "Hello! I'm your salon booking assistant. May I have your name?",
         name: "Thank you! What is your email address?",
@@ -53,7 +35,6 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
         complete: "Thank you for booking with us!"
     };
 
-    // Speak using browser TTS
     const speak = (text: string) => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
@@ -64,62 +45,88 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
         setMessages(prev => [...prev, { role: 'bot', text }]);
     };
 
-    // Initialize Speech Recognition
-    useEffect(() => {
-        if (!isOpen) return;
+    const processAudioWithElevenLabs = async (audioBlob: Blob) => {
+        try {
+            const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+            if (!apiKey) {
+                throw new Error('ElevenLabs API key not configured');
+            }
 
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            setError('Speech recognition not supported in this browser. Please use Chrome.');
-            return;
-        }
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'recording.webm');
+            formData.append('model_id', 'scribe_v1');
 
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
+            const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+                method: 'POST',
+                headers: { 'xi-api-key': apiKey },
+                body: formData,
+            });
 
-        recognition.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('ElevenLabs API Error:', errorText);
+                throw new Error(`API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const transcript = data.text || '';
+
+            if (!transcript) {
+                throw new Error('No transcript returned');
+            }
+
             setMessages(prev => [...prev, { role: 'user', text: transcript }]);
             handleUserResponse(transcript);
+
+        } catch (err) {
+            console.error('Error processing audio:', err);
+            setError(`Failed to process audio: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } finally {
             setIsListening(false);
-        };
-
-        recognition.onerror = (event: any) => {
-            console.error('Speech recognition error:', event.error);
-            setError(`Recognition error: ${event.error}`);
-            setIsListening(false);
-        };
-
-        recognition.onend = () => {
-            setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
-
-        return () => {
-            if (recognitionRef.current) {
-                recognitionRef.current.stop();
-            }
-            window.speechSynthesis.cancel();
-        };
-    }, [isOpen]);
-
-    // Start listening
-    const startListening = () => {
-        if (recognitionRef.current && !isListening) {
-            try {
-                recognitionRef.current.start();
-                setIsListening(true);
-                setError(null);
-            } catch (err) {
-                console.error('Error starting recognition:', err);
-            }
         }
     };
 
-    // Handle user response
+    const startListening = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                await processAudioWithElevenLabs(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            setIsListening(true);
+            setError(null);
+
+            setTimeout(() => {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }, 10000);
+
+        } catch (err) {
+            console.error('Error accessing microphone:', err);
+            setError('Could not access microphone. Please grant permission.');
+        }
+    };
+
+    const stopListening = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+        }
+    };
+
     const handleUserResponse = (transcript: string) => {
         const lower = transcript.toLowerCase();
 
@@ -143,7 +150,6 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                 break;
 
             case 'phone':
-                // Extract digits
                 const digits = transcript.replace(/\D/g, '');
                 if (digits.length === 10) {
                     setBookingData(prev => ({ ...prev, customerPhone: digits }));
@@ -217,7 +223,7 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                 if (date) {
                     setBookingData(prev => ({ ...prev, date }));
                     setCurrentStep('time');
-                    speak(stepPrompts.time);
+                    speak(stepPrompts.date);
                 } else {
                     speak("Please say today or tomorrow.");
                 }
@@ -257,7 +263,6 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
         }
     };
 
-    // Save booking
     const saveBooking = async () => {
         try {
             await addDoc(collection(db, 'bookings'), {
@@ -279,17 +284,15 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
         }
     };
 
-    // Welcome message
     useEffect(() => {
         if (isOpen && currentStep === 'welcome' && messages.length === 0) {
             speak(stepPrompts.welcome);
         }
     }, [isOpen]);
 
-    // Close
     const handleClose = () => {
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
         }
         window.speechSynthesis.cancel();
         setIsListening(false);
@@ -314,7 +317,7 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                     <h2>Voice Booking Assistant</h2>
                     <p className="status">
                         {error ? <span className="error">❌ {error}</span> :
-                            isListening ? 'Listening...' : 'Tap to speak'}
+                            isListening ? 'Recording...' : 'Ready'}
                     </p>
                 </div>
 
@@ -334,7 +337,9 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                         </button>
                     )}
                     {isListening && (
-                        <div className="listening-indicator">Listening...</div>
+                        <button className="stop-btn" onClick={stopListening}>
+                            ⏹️ Stop Recording
+                        </button>
                     )}
                 </div>
             </div>
@@ -483,7 +488,7 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                     text-align: center;
                 }
 
-                .record-btn {
+                .record-btn, .stop-btn {
                     background: #FF6B9D;
                     color: white;
                     border: none;
@@ -500,15 +505,13 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                     transform: scale(1.05);
                 }
 
-                .listening-indicator {
-                    color: #ef4444;
-                    font-weight: 600;
-                    animation: blink 1s infinite;
+                .stop-btn {
+                    background: #ef4444;
                 }
 
-                @keyframes blink {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
+                .stop-btn:hover {
+                    background: #dc2626;
+                    transform: scale(1.05);
                 }
 
                 @media (max-width: 768px) {
