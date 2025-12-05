@@ -21,7 +21,10 @@ export interface Salon {
   rating: number;
   reviewCount: number;
   imageUrl: string;
-  services: string[]; // Service IDs
+  services: Array<{
+    name: string;
+    price: number;
+  }>;
   priceRange: {
     min: number;
     max: number;

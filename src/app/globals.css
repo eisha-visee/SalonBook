@@ -3147,3 +3147,212 @@ label {
   background: white;
   border-bottom: 1px solid var(--color-border);
 }
+
+/* ============================
+   Mobile Navigation Styles
+   ============================ */
+
+/* Header Actions - contains both button and hamburger */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Hamburger Menu Button */
+.hamburger {
+  display: none;
+  /* Hidden by default on desktop */
+  flex-direction: column;
+  justify-content: space-around;
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 102;
+}
+
+.hamburger span {
+  width: 28px;
+  height: 3px;
+  background: var(--color-text-primary);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.hamburger.active span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.hamburger.active span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile Menu Overlay */
+.mobile-menu {
+  position: fixed;
+  top: 73px;
+  /* Height of header */
+  right: -100%;
+  width: 280px;
+  height: calc(100vh - 73px);
+  background: white;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 101;
+  overflow-y: auto;
+}
+
+.mobile-menu.active {
+  right: 0;
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  gap: var(--spacing-sm);
+}
+
+.mobile-nav-link {
+  font-family: var(--font-body);
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.mobile-nav-link:hover {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+/* Menu Overlay Background */
+.menu-overlay {
+  position: fixed;
+  top: 73px;
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 73px);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================
+   Responsive Media Queries
+   ============================ */
+
+/* Tablet and Mobile Devices */
+@media (max-width: 768px) {
+
+  /* Hide desktop navigation */
+  .nav {
+    display: none !important;
+  }
+
+  /* Show hamburger button */
+  .hamburger {
+    display: flex;
+  }
+
+  /* Adjust header spacing */
+  .header-content {
+    gap: var(--spacing-sm);
+  }
+
+  /* Make Book Now button smaller on mobile */
+  .header-actions .btn-primary {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+
+  /* Logo adjustments */
+  .logo-text {
+    font-size: 1.5rem;
+  }
+
+  /* Hero section adjustments */
+  .hero {
+    min-height: 500px;
+    padding: var(--spacing-2xl) 0;
+  }
+
+  /* Section padding adjustments */
+  section {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  /* Footer grid adjustments */
+  .footer-content {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  /* Form grid adjustments */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 480px) {
+
+  /* Further reduce header button size */
+  .header-actions .btn-primary {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* Logo size */
+  .logo-text {
+    font-size: 1.25rem;
+  }
+
+  /* Mobile menu width adjustment */
+  .mobile-menu {
+    width: 240px;
+  }
+
+  /* Container padding */
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+
+  /* Hero adjustments */
+  .hero {
+    min-height: 400px;
+  }
+
+  .hero-cta {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-cta .btn {
+    width: 100%;
+  }
+}

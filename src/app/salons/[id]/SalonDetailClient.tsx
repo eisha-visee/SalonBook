@@ -12,9 +12,8 @@ interface SalonDetailClientProps {
 
 export default function SalonDetailClient({ id }: SalonDetailClientProps) {
     const [salon, setSalon] = useState<Salon | null>(null);
-    const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedServices, setSelectedServices] = useState<string[]>([]);
+    const [selectedServices, setSelectedServices] = useState<number[]>([]);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -26,19 +25,11 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch Salon
+                // Fetch Salon with its embedded services
                 const salonDoc = await getDoc(doc(db, 'salons', id));
                 if (salonDoc.exists()) {
                     setSalon({ id: salonDoc.id, ...salonDoc.data() } as Salon);
                 }
-
-                // Fetch All Services
-                const servicesSnapshot = await getDocs(collection(db, 'services'));
-                const servicesData = servicesSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })) as Service[];
-                setServices(servicesData);
             } catch (error) {
                 console.error('Error fetching data:', error);
             } finally {
@@ -50,28 +41,24 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
     }, [id]);
 
     const availableServices = useMemo(() => {
-        if (!salon || !services.length) return [];
-        // Match services by ID since salon.services contains service IDs like 'haircut', 'facial'
-        return services.filter(service =>
-            salon.services.some(s => s.toLowerCase() === service.id.toLowerCase())
-        );
-    }, [salon, services]);
+        return salon?.services || [];
+    }, [salon]);
 
     const total = useMemo(() => {
-        return selectedServices.reduce((sum, serviceId) => {
-            const service = services.find(s => s.id === serviceId);
-            return sum + (service?.price || 0);
+        if (!salon) return 0;
+        return selectedServices.reduce((sum, index) => {
+            return sum + ((salon.services[index]?.price || 0));
         }, 0);
-    }, [selectedServices, services]);
+    }, [selectedServices, salon]);
 
-    const handleAddService = (serviceId: string) => {
-        if (!selectedServices.includes(serviceId)) {
-            setSelectedServices([...selectedServices, serviceId]);
+    const handleAddService = (serviceIndex: number) => {
+        if (!selectedServices.includes(serviceIndex)) {
+            setSelectedServices([...selectedServices, serviceIndex]);
         }
     };
 
-    const handleRemoveService = (serviceId: string) => {
-        setSelectedServices(selectedServices.filter(id => id !== serviceId));
+    const handleRemoveService = (serviceIndex: number) => {
+        setSelectedServices(selectedServices.filter(idx => idx !== serviceIndex));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -85,13 +72,13 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
 
         try {
             // Prepare selected services data
-            const selectedServicesData = selectedServices.map(serviceId => {
-                const service = services.find(s => s.id === serviceId);
+            const selectedServicesData = selectedServices.map(index => {
+                const service = salon.services[index];
                 return {
-                    id: service?.id,
+                    id: `service-${index}`,
                     name: service?.name,
                     price: service?.price,
-                    duration: service?.duration,
+                    duration: 60, // Default duration
                 };
             });
 
@@ -208,19 +195,19 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
                                 <p>No services listed for this salon.</p>
                             ) : (
                                 <div className="services-list">
-                                    {availableServices.map(service => (
-                                        <div key={service.id} className="service-item">
+                                    {availableServices.map((service, index) => (
+                                        <div key={index} className="service-item">
                                             <div className="service-item-content">
                                                 <h3 className="service-item-name">{service.name}</h3>
-                                                <p className="service-item-duration">{service.duration} min</p>
+                                                <p className="service-item-duration">60 min</p>
                                             </div>
                                             <div className="service-item-actions">
                                                 <span className="service-item-price">₹{service.price}</span>
-                                                {selectedServices.includes(service.id) ? (
+                                                {selectedServices.includes(index) ? (
                                                     <button
                                                         type="button"
                                                         className="btn-remove"
-                                                        onClick={() => handleRemoveService(service.id)}
+                                                        onClick={() => handleRemoveService(index)}
                                                     >
                                                         Remove
                                                     </button>
@@ -228,7 +215,7 @@ export default function SalonDetailClient({ id }: SalonDetailClientProps) {
                                                     <button
                                                         type="button"
                                                         className="btn-add"
-                                                        onClick={() => handleAddService(service.id)}
+                                                        onClick={() => handleAddService(index)}
                                                     >
                                                         Add
                                                     </button>

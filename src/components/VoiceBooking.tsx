@@ -3,36 +3,41 @@
 import { useState, useRef, useEffect } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { ParsedBooking } from '@/lib/bookingParser';
+import { MultiServiceManager } from '@/lib/multiServiceManager';
+import { BookingData } from '@/lib/geminiService';
 
 interface VoiceBookingProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-type ConversationStep = 'welcome' | 'name' | 'email' | 'phone' | 'salon' | 'service' | 'date' | 'time' | 'confirm' | 'complete';
-
 export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
     const [isListening, setIsListening] = useState(false);
-    const [currentStep, setCurrentStep] = useState<ConversationStep>('welcome');
-    const [bookingData, setBookingData] = useState<Partial<ParsedBooking>>({});
+    const [isProcessing, setIsProcessing] = useState(false);
     const [messages, setMessages] = useState<Array<{ role: 'bot' | 'user'; text: string }>>([]);
     const [error, setError] = useState<string | null>(null);
+    const [activeServices, setActiveServices] = useState<{ stt: string; ai: string }>({ stt: '', ai: '' });
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
+    const serviceManagerRef = useRef<MultiServiceManager | null>(null);
 
-    const stepPrompts: Record<ConversationStep, string> = {
-        welcome: "Hello! I'm your salon booking assistant. May I have your name?",
-        name: "Thank you! What is your email address?",
-        email: "Great! And your phone number? Please say the 10 digits.",
-        phone: "Perfect! Which salon? We have Glamour Lounge, Bliss Beauty Studio, or Radiance Salon.",
-        salon: "Excellent! What service? We offer Haircut, Hair Coloring, Spa, Manicure, Pedicure, Makeup, or Facial.",
-        service: "Wonderful! What date? You can say today or tomorrow.",
-        date: "And what time? For example, say 2 PM or 2:30 PM.",
-        time: "Let me confirm your booking. Say yes to confirm or no to restart.",
-        confirm: "Your booking is confirmed! You'll get a confirmation email shortly.",
-        complete: "Thank you for booking with us!"
+    // Initialize service manager
+    useEffect(() => {
+        if (isOpen && !serviceManagerRef.current) {
+            serviceManagerRef.current = new MultiServiceManager();
+            const greeting = serviceManagerRef.current.getInitialGreeting();
+            setMessages([{ role: 'bot', text: greeting }]);
+            speak(greeting);
+            updateServices();
+        }
+    }, [isOpen]);
+
+    const updateServices = () => {
+        if (serviceManagerRef.current) {
+            const services = serviceManagerRef.current.getCurrentServices();
+            setActiveServices({ stt: services.stt, ai: services.conversation });
+        }
     };
 
     const speak = (text: string) => {
@@ -40,58 +45,80 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = 0.9;
+            utterance.pitch = 1;
+
+            // Auto-start recording after AI finishes speaking
+            utterance.onend = () => {
+                setTimeout(() => {
+                    if (!isProcessing) {
+                        startListening();
+                    }
+                }, 500); // Small delay before starting
+            };
+
             window.speechSynthesis.speak(utterance);
-        }
-        setMessages(prev => [...prev, { role: 'bot', text }]);
-    };
-
-    const processAudioWithElevenLabs = async (audioBlob: Blob) => {
-        try {
-            const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
-            if (!apiKey) {
-                throw new Error('ElevenLabs API key not configured');
-            }
-
-            const formData = new FormData();
-            formData.append('file', audioBlob, 'recording.webm');
-            formData.append('model_id', 'scribe_v1');
-
-            const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-                method: 'POST',
-                headers: { 'xi-api-key': apiKey },
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('ElevenLabs API Error:', errorText);
-                throw new Error(`API error: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            const transcript = data.text || '';
-
-            if (!transcript) {
-                throw new Error('No transcript returned');
-            }
-
-            setMessages(prev => [...prev, { role: 'user', text: transcript }]);
-            handleUserResponse(transcript);
-
-        } catch (err) {
-            console.error('Error processing audio:', err);
-            setError(`Failed to process audio: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        } finally {
-            setIsListening(false);
         }
     };
 
     const startListening = async () => {
+        if (isListening || isProcessing) return;
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const mediaRecorder = new MediaRecorder(stream);
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
+
+            let silenceTimeout: NodeJS.Timeout | null = null;
+            let lastSoundTime = Date.now();
+
+            // Audio level detection for silence
+            const audioContext = new AudioContext();
+            const audioStreamSource = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512;
+            audioStreamSource.connect(analyser);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const domainData = new Uint8Array(bufferLength);
+
+            const detectSound = () => {
+                if (mediaRecorder.state !== 'recording') {
+                    audioContext.close();
+                    return;
+                }
+
+                analyser.getByteFrequencyData(domainData);
+
+                // Calculate average volume
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    sum += domainData[i];
+                }
+                const average = sum / bufferLength;
+
+                // If sound detected (above threshold)
+                if (average > 10) {
+                    lastSoundTime = Date.now();
+                    // Clear existing silence timeout
+                    if (silenceTimeout) {
+                        clearTimeout(silenceTimeout);
+                        silenceTimeout = null;
+                    }
+                } else {
+                    // If no recent sound and no timeout set, start silence timer
+                    const silenceDuration = Date.now() - lastSoundTime;
+                    if (silenceDuration > 1500 && !silenceTimeout) {
+                        // Stop after 1.5 seconds of silence
+                        mediaRecorder.stop();
+                        setIsListening(false);
+                        audioContext.close();
+                        return;
+                    }
+                }
+
+                requestAnimationFrame(detectSound);
+            };
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -101,22 +128,30 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
 
             mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                await processAudioWithElevenLabs(audioBlob);
+                if (audioBlob.size > 0) {
+                    await processAudio(audioBlob);
+                }
                 stream.getTracks().forEach(track => track.stop());
+                audioContext.close();
             };
 
             mediaRecorder.start();
             setIsListening(true);
             setError(null);
 
+            // Start silence detection
+            detectSound();
+
+            // Absolute max timeout of 10 seconds
             setTimeout(() => {
                 if (mediaRecorder.state === 'recording') {
                     mediaRecorder.stop();
+                    setIsListening(false);
                 }
             }, 10000);
 
         } catch (err) {
-            console.error('Error accessing microphone:', err);
+            console.error('Microphone error:', err);
             setError('Could not access microphone. Please grant permission.');
         }
     };
@@ -124,171 +159,67 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
     const stopListening = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.stop();
+            setIsListening(false);
         }
     };
 
-    const handleUserResponse = (transcript: string) => {
-        const lower = transcript.toLowerCase();
+    const processAudio = async (audioBlob: Blob) => {
+        if (!serviceManagerRef.current) return;
 
-        switch (currentStep) {
-            case 'welcome':
-            case 'name':
-                setBookingData(prev => ({ ...prev, customerName: transcript }));
-                setCurrentStep('email');
-                speak(stepPrompts.email);
-                break;
+        setIsProcessing(true);
+        try {
+            // Multi-service STT with auto-fallback
+            const { text: transcript, service: sttService } = await serviceManagerRef.current.transcribeAudio(audioBlob);
 
-            case 'email':
-                const emailMatch = transcript.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
-                if (emailMatch) {
-                    setBookingData(prev => ({ ...prev, customerEmail: emailMatch[0] }));
-                    setCurrentStep('phone');
-                    speak(stepPrompts.phone);
-                } else {
-                    speak("I didn't catch your email. Please try again.");
-                }
-                break;
+            console.log(`Transcribed by ${sttService}:`, transcript);
+            setMessages(prev => [...prev, { role: 'user', text: transcript }]);
+            updateServices();
 
-            case 'phone':
-                const digits = transcript.replace(/\D/g, '');
-                if (digits.length === 10) {
-                    setBookingData(prev => ({ ...prev, customerPhone: digits }));
-                    setCurrentStep('salon');
-                    speak(stepPrompts.salon);
-                } else {
-                    speak("Please say all 10 digits of your phone number.");
-                }
-                break;
+            // Multi-service conversation with auto-fallback
+            const { response, bookingData, service: aiService } = await serviceManagerRef.current.sendMessage(transcript);
 
-            case 'salon':
-                let salonName = '';
-                let salonId = '';
-                if (lower.includes('glamour')) {
-                    salonName = 'Glamour Lounge';
-                    salonId = 'glamour-lounge-mumbai';
-                } else if (lower.includes('bliss')) {
-                    salonName = 'Bliss Beauty Studio';
-                    salonId = 'bliss-beauty-studio-delhi';
-                } else if (lower.includes('radiance')) {
-                    salonName = 'Radiance Salon & Spa';
-                    salonId = 'radiance-salon-spa-bangalore';
-                }
+            console.log(`Response from ${aiService}:`, response);
+            setMessages(prev => [...prev, { role: 'bot', text: response }]);
+            speak(response);
+            updateServices();
 
-                if (salonName) {
-                    setBookingData(prev => ({ ...prev, salonName, salonId }));
-                    setCurrentStep('service');
-                    speak(stepPrompts.service);
-                } else {
-                    speak("Please choose Glamour Lounge, Bliss Beauty Studio, or Radiance Salon.");
-                }
-                break;
+            if (bookingData) {
+                await saveBooking(bookingData);
+            }
 
-            case 'service':
-                let service = null;
-                if (lower.includes('haircut')) {
-                    service = { id: 'haircut', name: 'Haircut & Styling', price: 1000, duration: 60 };
-                } else if (lower.includes('color')) {
-                    service = { id: 'hair-coloring', name: 'Hair Coloring', price: 3500, duration: 120 };
-                } else if (lower.includes('spa')) {
-                    service = { id: 'spa-treatment', name: 'Spa Treatment', price: 4500, duration: 120 };
-                } else if (lower.includes('manicure') || lower.includes('pedicure')) {
-                    service = { id: 'manicure-pedicure', name: 'Manicure & Pedicure', price: 1000, duration: 60 };
-                } else if (lower.includes('makeup')) {
-                    service = { id: 'professional-makeup', name: 'Professional Makeup', price: 3000, duration: 90 };
-                } else if (lower.includes('facial')) {
-                    service = { id: 'facial-treatment', name: 'Facial Treatment', price: 1500, duration: 75 };
-                }
-
-                if (service) {
-                    setBookingData(prev => ({ ...prev, services: [service], totalAmount: service.price }));
-                    setCurrentStep('date');
-                    speak(stepPrompts.date);
-                } else {
-                    speak("Please choose from Haircut, Hair Coloring, Spa, Manicure, Pedicure, Makeup, or Facial.");
-                }
-                break;
-
-            case 'date':
-                let date = '';
-                const today = new Date();
-
-                if (lower.includes('today')) {
-                    date = today.toISOString().split('T')[0];
-                } else if (lower.includes('tomorrow')) {
-                    const tomorrow = new Date(today);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    date = tomorrow.toISOString().split('T')[0];
-                }
-
-                if (date) {
-                    setBookingData(prev => ({ ...prev, date }));
-                    setCurrentStep('time');
-                    speak(stepPrompts.date);
-                } else {
-                    speak("Please say today or tomorrow.");
-                }
-                break;
-
-            case 'time':
-                const timeMatch = transcript.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)/i);
-                if (timeMatch) {
-                    let hours = parseInt(timeMatch[1]);
-                    const minutes = timeMatch[2] || '00';
-                    const period = timeMatch[3].toLowerCase();
-
-                    if (period === 'pm' && hours !== 12) hours += 12;
-                    if (period === 'am' && hours === 12) hours = 0;
-
-                    const time = `${hours.toString().padStart(2, '0')}:${minutes}`;
-                    setBookingData(prev => ({ ...prev, time }));
-                    setCurrentStep('confirm');
-
-                    const summary = `${bookingData.customerName}, booking ${bookingData.services?.[0]?.name} at ${bookingData.salonName} on ${bookingData.date} at ${time}. Say yes to confirm.`;
-                    speak(summary);
-                } else {
-                    speak("Please say the time like 2 PM or 2:30 PM.");
-                }
-                break;
-
-            case 'confirm':
-                if (lower.includes('yes')) {
-                    saveBooking();
-                } else {
-                    setBookingData({});
-                    setCurrentStep('welcome');
-                    setMessages([]);
-                    speak("Let's start over. What is your name?");
-                }
-                break;
+        } catch (err: any) {
+            console.error('Processing error:', err);
+            const errorMsg = err.message || 'Failed to process your message. Please try again.';
+            setError(errorMsg);
+            setMessages(prev => [...prev, { role: 'bot', text: `Sorry, ${errorMsg}` }]);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
-    const saveBooking = async () => {
+    const saveBooking = async (bookingData: BookingData) => {
         try {
             await addDoc(collection(db, 'bookings'), {
                 ...bookingData,
                 createdAt: new Date().toISOString(),
                 status: 'pending',
-                bookingSource: 'voice-assistant',
+                bookingSource: 'voice-assistant-multi-service',
             });
 
-            setCurrentStep('complete');
-            speak(stepPrompts.confirm);
+            const confirmMsg = "Your booking has been confirmed! You'll receive a confirmation email shortly.";
+            setMessages(prev => [...prev, { role: 'bot', text: confirmMsg }]);
+            speak(confirmMsg);
 
             setTimeout(() => {
                 handleClose();
             }, 3000);
         } catch (err) {
-            console.error('Error saving:', err);
-            speak("Sorry, error saving your booking. Please try again.");
+            console.error('Firestore error:', err);
+            const errorMsg = "Sorry, there was an error saving your booking. Please try again.";
+            setMessages(prev => [...prev, { role: 'bot', text: errorMsg }]);
+            speak(errorMsg);
         }
     };
-
-    useEffect(() => {
-        if (isOpen && currentStep === 'welcome' && messages.length === 0) {
-            speak(stepPrompts.welcome);
-        }
-    }, [isOpen]);
 
     const handleClose = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -296,10 +227,10 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
         }
         window.speechSynthesis.cancel();
         setIsListening(false);
-        setCurrentStep('welcome');
-        setBookingData({});
+        setIsProcessing(false);
         setMessages([]);
         setError(null);
+        serviceManagerRef.current = null;
         onClose();
     };
 
@@ -311,14 +242,23 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                 <button className="close-btn" onClick={handleClose}>×</button>
 
                 <div className="header">
-                    <div className={`avatar ${isListening ? 'listening' : ''}`}>
-                        {isListening ? '🎤' : '🤖'}
+                    <div className={`avatar ${isListening ? 'listening' : isProcessing ? 'processing' : ''}`}>
+                        {isListening ? '🎤' : isProcessing ? '🤔' : '🤖'}
                     </div>
-                    <h2>Voice Booking Assistant</h2>
+                    <h2>Multi-Service AI Assistant</h2>
                     <p className="status">
                         {error ? <span className="error">❌ {error}</span> :
-                            isListening ? 'Recording...' : 'Ready'}
+                            isListening ? '🔴 Recording...' :
+                                isProcessing ? '⏳ Processing...' :
+                                    '✅ Ready to help'}
                     </p>
+                    {activeServices.stt && (
+                        <p className="service-info">
+                            <small>
+                                🎤 {activeServices.stt} • 🤖 {activeServices.ai}
+                            </small>
+                        </p>
+                    )}
                 </div>
 
                 <div className="conversation">
@@ -331,15 +271,19 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                 </div>
 
                 <div className="controls">
-                    {!isListening && currentStep !== 'complete' && (
-                        <button className="record-btn" onClick={startListening}>
-                            🎤 Tap to Speak
-                        </button>
-                    )}
                     {isListening && (
-                        <button className="stop-btn" onClick={stopListening}>
-                            ⏹️ Stop Recording
-                        </button>
+                        <div className="auto-recording">
+                            <div className="pulse-dot"></div>
+                            <span>Listening... (speak naturally)</span>
+                        </div>
+                    )}
+                    {isProcessing && (
+                        <div className="processing-indicator">Processing your response...</div>
+                    )}
+                    {!isListening && !isProcessing && (
+                        <div className="waiting-indicator">
+                            <span>🎤 Auto-recording enabled - I'll listen after I speak</span>
+                        </div>
                     )}
                 </div>
             </div>
@@ -399,7 +343,7 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                 .avatar {
                     width: 100px;
                     height: 100px;
-                    background: #f3f4f6;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
@@ -414,20 +358,38 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                     animation: pulse 1.5s infinite;
                 }
 
+                .avatar.processing {
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    animation: spin 2s linear infinite;
+                }
+
                 @keyframes pulse {
                     0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
                     70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
                     100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
                 }
 
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+
                 .header h2 {
                     margin: 0 0 0.5rem 0;
                     color: #1f2937;
+                    font-size: 1.5rem;
                 }
 
                 .status {
                     color: #6b7280;
                     font-size: 0.9rem;
+                    margin: 0.5rem 0;
+                }
+
+                .service-info {
+                    color: #9ca3af;
+                    font-size: 0.75rem;
+                    margin: 0.25rem 0;
                 }
 
                 .error {
@@ -449,6 +411,12 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                     display: flex;
                     gap: 0.75rem;
                     margin-bottom: 1rem;
+                    animation: slideIn 0.3s ease;
+                }
+
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
 
                 .message.bot {
@@ -480,38 +448,60 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                 }
 
                 .message.user p {
-                    background: #FF6B9D;
+                    background: #667eea;
                     color: white;
                 }
 
                 .controls {
                     text-align: center;
+                    min-height: 60px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
 
-                .record-btn, .stop-btn {
-                    background: #FF6B9D;
-                    color: white;
-                    border: none;
-                    padding: 1rem 2rem;
-                    border-radius: 50px;
+                .auto-recording {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    color: #ef4444;
+                    font-weight: 600;
                     font-size: 1.1rem;
-                    font-weight: 700;
-                    cursor: pointer;
-                    transition: all 0.2s;
                 }
 
-                .record-btn:hover {
-                    background: #ff528b;
-                    transform: scale(1.05);
-                }
-
-                .stop-btn {
+                .pulse-dot {
+                    width: 12px;
+                    height: 12px;
                     background: #ef4444;
+                    border-radius: 50%;
+                    animation: pulse-dot 1.5s infinite;
                 }
 
-                .stop-btn:hover {
-                    background: #dc2626;
-                    transform: scale(1.05);
+                @keyframes pulse-dot {
+                    0%, 100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: scale(1.3);
+                        opacity: 0.7;
+                    }
+                }
+
+                .waiting-indicator {
+                    color: #9ca3af;
+                    font-size: 0.9rem;
+                }
+
+                .processing-indicator {
+                    color: #667eea;
+                    font-weight: 600;
+                    animation: blink 1s infinite;
+                }
+
+                @keyframes blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
                 }
 
                 @media (max-width: 768px) {

@@ -1,6 +1,19 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Header() {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const toggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen);
+    };
+
+    const closeMenu = () => {
+        setIsMenuOpen(false);
+    };
+
     return (
         <header className="header">
             <div className="container">
@@ -15,11 +28,35 @@ export default function Header() {
                         <Link href="/contact" className="nav-link">Contact</Link>
                     </nav>
 
-                    <Link href="/salons" className="btn btn-primary">
-                        Book Now
-                    </Link>
+                    <div className="header-actions">
+                        <Link href="/salons" className="btn btn-primary">
+                            Book Now
+                        </Link>
+
+                        <button
+                            className={`hamburger ${isMenuOpen ? 'active' : ''}`}
+                            onClick={toggleMenu}
+                            aria-label="Toggle menu"
+                        >
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                    </div>
+
+                    {/* Mobile Menu */}
+                    <div className={`mobile-menu ${isMenuOpen ? 'active' : ''}`}>
+                        <nav className="mobile-nav">
+                            <Link href="/" className="mobile-nav-link" onClick={closeMenu}>Home</Link>
+                            <Link href="/salons" className="mobile-nav-link" onClick={closeMenu}>Salons</Link>
+                            <Link href="/contact" className="mobile-nav-link" onClick={closeMenu}>Contact</Link>
+                        </nav>
+                    </div>
                 </div>
             </div>
+
+            {/* Overlay */}
+            {isMenuOpen && <div className="menu-overlay" onClick={closeMenu}></div>}
         </header>
     );
 }

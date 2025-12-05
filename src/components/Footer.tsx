@@ -15,8 +15,7 @@ export default function Footer() {
                         <ul className="footer-links">
                             <li><Link href="/">Home</Link></li>
                             <li><Link href="/salons">Salons</Link></li>
-                            <li><Link href="/booking">Book Now</Link></li>
-                            <li><Link href="#services">Services</Link></li>
+                            <li><Link href="/contact">Contact</Link></li>
                         </ul>
                     </div>
 
@@ -24,7 +23,6 @@ export default function Footer() {
                         <h4 className="footer-title">Contact</h4>
                         <ul className="footer-links">
                             <li>Email: hello@salonbook.com</li>
-                            <li>Phone: +91 98765 43210</li>
                         </ul>
                     </div>
 

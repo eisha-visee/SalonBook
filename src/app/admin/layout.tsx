@@ -31,10 +31,9 @@ export default function AdminLayout({
     const navItems = [
         { name: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
         { name: 'Bookings', href: '/admin/bookings', icon: '📅' },
+        { name: 'Salons', href: '/admin/salons', icon: '💈' },
         { name: 'Clients', href: '/admin/clients', icon: '👥' },
         { name: 'Employees', href: '/admin/employees', icon: '👨‍💼' },
-        { name: 'Salons', href: '/admin/salons', icon: '🏪' },
-        { name: 'Services', href: '/admin/services', icon: '💆‍♀️' },
     ];
 
     return (

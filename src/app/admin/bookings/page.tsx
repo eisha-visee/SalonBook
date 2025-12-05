@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DataTable from '@/components/admin/DataTable';
+import EmployeeSelectionModal from '@/components/admin/EmployeeSelectionModal';
 
 interface Booking {
     id: string;
@@ -31,6 +32,8 @@ export default function BookingsPage() {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'not_assigned' | 'assigned' | 'pending' | 'reschedule'>('all');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
     // Fetch bookings from Firestore in real-time
     useEffect(() => {
@@ -70,21 +73,27 @@ export default function BookingsPage() {
         }
     };
 
-    // Assign employee to booking
-    const handleAssignEmployee = async (bookingId: string) => {
-        const employeeName = prompt('Enter employee name:');
-        if (employeeName) {
-            try {
-                await updateDoc(doc(db, 'bookings', bookingId), {
-                    assignedEmployeeName: employeeName,
-                    status: 'assigned',
-                    updatedAt: Timestamp.now()
-                });
-                console.log('✅ Employee assigned successfully');
-            } catch (error) {
-                console.error('Error assigning employee:', error);
-                alert('Failed to assign employee. Please try again.');
-            }
+    // Open modal for employee assignment
+    const handleAssignEmployee = (bookingId: string) => {
+        setSelectedBookingId(bookingId);
+        setIsModalOpen(true);
+    };
+
+    // Handle employee selection from modal
+    const handleEmployeeSelect = async (employee: any) => {
+        if (!selectedBookingId) return;
+
+        try {
+            await updateDoc(doc(db, 'bookings', selectedBookingId), {
+                assignedEmployeeId: employee.id,
+                assignedEmployeeName: employee.name,
+                status: 'assigned',
+                updatedAt: Timestamp.now()
+            });
+            console.log('✅ Employee assigned successfully:', employee.name);
+        } catch (error) {
+            console.error('Error assigning employee:', error);
+            alert('Failed to assign employee. Please try again.');
         }
     };
 
@@ -284,6 +293,12 @@ export default function BookingsPage() {
                 searchable={true}
                 searchKeys={['customerName', 'customerEmail', 'salonName', 'id']}
                 title="Recent Bookings"
+            />
+
+            <EmployeeSelectionModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSelect={handleEmployeeSelect}
             />
 
             <style jsx>{`

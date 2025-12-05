@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
 
 interface Salon {
     id: string;
@@ -15,7 +17,10 @@ interface Salon {
     rating: number;
     reviewCount: number;
     imageUrl: string;
-    services: string[];
+    services: Array<{
+        name: string;
+        price: number;
+    }>;
     priceRange: {
         min: number;
         max: number;
@@ -29,6 +34,7 @@ export default function SalonsManagementPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingSalon, setEditingSalon] = useState<Salon | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [uploading, setUploading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -37,7 +43,7 @@ export default function SalonsManagementPage() {
         rating: 4.5,
         reviewCount: 0,
         imageUrl: '/salon-1.jpg',
-        services: '',
+        services: [{ name: '', price: 0 }],
         minPrice: 500,
         maxPrice: 5000,
     });
@@ -62,9 +68,72 @@ export default function SalonsManagementPage() {
         }
     };
 
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size should be less than 5MB');
+            return;
+        }
+
+        try {
+            setUploading(true);
+
+            // Create a unique filename
+            const timestamp = Date.now();
+            const filename = `salons/${timestamp}_${file.name}`;
+            const storageRef = ref(storage, filename);
+
+            // Upload file
+            await uploadBytes(storageRef, file);
+
+            // Get download URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Update form data
+            setFormData({ ...formData, imageUrl: downloadURL });
+
+            alert('✅ Image uploaded successfully!');
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to upload image. Please try again.');
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleOpenModal = (salon?: Salon) => {
         if (salon) {
             setEditingSalon(salon);
+
+            // Handle migration from old string[] format to new object[] format
+            let servicesData: Array<{ name: string; price: number }> = [];
+            if (salon.services && salon.services.length > 0) {
+                // Check if first service is a string (old format) or object (new format)
+                const firstService = salon.services[0];
+                if (typeof firstService === 'string') {
+                    // Old format: convert strings to objects
+                    servicesData = (salon.services as unknown as string[]).map(serviceName => ({
+                        name: serviceName,
+                        price: 0
+                    }));
+                } else {
+                    // New format: use as is
+                    servicesData = salon.services;
+                }
+            } else {
+                // No services: start with one empty row
+                servicesData = [{ name: '', price: 0 }];
+            }
+
             setFormData({
                 name: salon.name,
                 description: salon.description,
@@ -73,7 +142,7 @@ export default function SalonsManagementPage() {
                 rating: salon.rating,
                 reviewCount: salon.reviewCount,
                 imageUrl: salon.imageUrl,
-                services: salon.services.join(', '),
+                services: servicesData,
                 minPrice: salon.priceRange.min,
                 maxPrice: salon.priceRange.max,
             });
@@ -87,7 +156,7 @@ export default function SalonsManagementPage() {
                 rating: 4.5,
                 reviewCount: 0,
                 imageUrl: '/salon-1.jpg',
-                services: '',
+                services: [{ name: '', price: 0 }],
                 minPrice: 500,
                 maxPrice: 5000,
             });
@@ -108,7 +177,7 @@ export default function SalonsManagementPage() {
             rating: Number(formData.rating),
             reviewCount: Number(formData.reviewCount),
             imageUrl: formData.imageUrl,
-            services: formData.services.split(',').map(s => s.trim()),
+            services: formData.services.filter(s => s.name.trim() !== ''),
             priceRange: {
                 min: Number(formData.minPrice),
                 max: Number(formData.maxPrice),
@@ -225,7 +294,7 @@ export default function SalonsManagementPage() {
                                 </div>
                                 <div className="salon-services">
                                     {salon.services.slice(0, 3).map((service, idx) => (
-                                        <span key={idx} className="service-badge">{service}</span>
+                                        <span key={idx} className="service-badge">{service.name}</span>
                                     ))}
                                     {salon.services.length > 3 && (
                                         <span className="service-badge more">+{salon.services.length - 3}</span>
@@ -265,12 +334,26 @@ export default function SalonsManagementPage() {
                                     />
                                 </div>
                                 <div className="form-field">
-                                    <label>Image URL</label>
-                                    <input
-                                        type="text"
-                                        value={formData.imageUrl}
-                                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                                    />
+                                    <label>Salon Image</label>
+                                    <div className="image-upload-container">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            disabled={uploading}
+                                            className="file-input"
+                                            id="imageUpload"
+                                        />
+                                        <label htmlFor="imageUpload" className="upload-button">
+                                            {uploading ? '⏳ Uploading...' : '📁 Choose Image'}
+                                        </label>
+                                        {formData.imageUrl && (
+                                            <div className="image-preview">
+                                                <img src={formData.imageUrl} alt="Preview" />
+                                                <small>{formData.imageUrl.substring(0, 50)}...</small>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -328,13 +411,57 @@ export default function SalonsManagementPage() {
                             </div>
 
                             <div className="form-field">
-                                <label>Services (comma-separated)</label>
-                                <input
-                                    type="text"
-                                    value={formData.services}
-                                    onChange={(e) => setFormData({ ...formData, services: e.target.value })}
-                                    placeholder="haircut, hair-coloring, spa-treatment"
-                                />
+                                <label>Services & Pricing</label>
+                                {formData.services.map((service, index) => (
+                                    <div key={index} className="service-row">
+                                        <input
+                                            type="text"
+                                            placeholder="Service name (e.g., Haircut)"
+                                            value={service.name}
+                                            onChange={(e) => {
+                                                const newServices = [...formData.services];
+                                                newServices[index].name = e.target.value;
+                                                setFormData({ ...formData, services: newServices });
+                                            }}
+                                            required
+                                        />
+                                        <input
+                                            type="number"
+                                            placeholder="Price (₹)"
+                                            value={service.price || ''}
+                                            onChange={(e) => {
+                                                const newServices = [...formData.services];
+                                                newServices[index].price = Number(e.target.value);
+                                                setFormData({ ...formData, services: newServices });
+                                            }}
+                                            required
+                                        />
+                                        {formData.services.length > 1 && (
+                                            <button
+                                                type="button"
+                                                className="btn-remove-service"
+                                                onClick={() => {
+                                                    const newServices = formData.services.filter((_, i) => i !== index);
+                                                    setFormData({ ...formData, services: newServices });
+                                                }}
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    className="btn-add-service"
+                                    onClick={() => {
+                                        setFormData({
+                                            ...formData,
+                                            services: [...formData.services, { name: '', price: 0 }]
+                                        });
+                                    }}
+                                >
+                                    + Add Service
+                                </button>
                             </div>
 
                             <div className="form-row">
@@ -343,7 +470,7 @@ export default function SalonsManagementPage() {
                                     <input
                                         type="number"
                                         value={formData.minPrice}
-                                        onChange={(e) => setFormData({ ...formData, minPrice: parseInt(e.target.value) })}
+                                        onChange={(e) => setFormData({ ...formData, minPrice: parseInt(e.target.value) || 0 })}
                                     />
                                 </div>
                                 <div className="form-field">
@@ -351,7 +478,7 @@ export default function SalonsManagementPage() {
                                     <input
                                         type="number"
                                         value={formData.maxPrice}
-                                        onChange={(e) => setFormData({ ...formData, maxPrice: parseInt(e.target.value) })}
+                                        onChange={(e) => setFormData({ ...formData, maxPrice: parseInt(e.target.value) || 0 })}
                                     />
                                 </div>
                             </div>
@@ -683,6 +810,97 @@ export default function SalonsManagementPage() {
 
                 .btn-secondary:hover {
                     background: #F9FAFB;
+                }
+
+                /* Service Form Styles */
+                .service-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr auto;
+                    gap: 0.75rem;
+                    margin-bottom: 0.75rem;
+                    align-items: center;
+                }
+
+                .btn-add-service {
+                    background: linear-gradient(135deg, #FF6B9D 0%, #FF8FB3 100%);
+                    color: white;
+                    padding: 0.75rem 1rem;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    margin-top: 0.5rem;
+                    width: 100%;
+                }
+
+                .btn-add-service:hover {
+                    background: linear-gradient(135deg, #E5427A 0%, #EC6FA1 100%);
+                }
+
+                .btn-remove-service {
+                    background: #FEE2E2;
+                    color: #991B1B;
+                    border: none;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 1.5rem;
+                    font-weight: 600;
+                    line-height: 1;
+                }
+
+                .btn-remove-service:hover {
+                    background: #FECACA;
+                }
+
+                /* Image Upload Styles */
+                .image-upload-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+
+                .file-input {
+                    display: none;
+                }
+
+                .upload-button {
+                    background: linear-gradient(135deg, #FF6B9D 0%, #FF8FB3 100%);
+                    color: white;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    text-align: center;
+                    transition: all 0.2s;
+                    display: inline-block;
+                }
+
+                .upload-button:hover {
+                    background: linear-gradient(135deg, #E5427A 0%, #EC6FA1 100%);
+                    transform: translateY(-1px);
+                }
+
+                .image-preview {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .image-preview img {
+                    width: 100%;
+                    max-width: 200px;
+                    height: 120px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                    border: 2px solid #E5E7EB;
+                }
+
+                .image-preview small {
+                    color: #6B7280;
+                    font-size: 0.75rem;
+                    word-break: break-all;
                 }
             `}</style>
         </div>

@@ -90,8 +90,8 @@ export default function ContactPage() {
                         <div className="step-card">
                             <div className="step-number">1</div>
                             <div className="step-icon">📞</div>
-                            <h3>Call the Number</h3>
-                            <p>Click the button above or dial +91 98765 43210 to connect with Sophia AI instantly.</p>
+                            <h3>Start AI Assistant</h3>
+                            <p>Click the "Call AI Assistant" button above to connect with Sophia AI instantly and begin your booking.</p>
                         </div>
 
                         <div className="step-card">
@@ -563,19 +563,53 @@ export default function ContactPage() {
 
                 .contact-cta {
                     padding: 6rem 2rem;
-                    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-                    color: white;
+                    background: linear-gradient(135deg, #FFE5EF 0%, #FFF5F8 50%, #FFD6E8 100%);
                     text-align: center;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .contact-cta::before {
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    right: -20%;
+                    width: 600px;
+                    height: 600px;
+                    background: radial-gradient(circle, rgba(255, 107, 157, 0.15) 0%, transparent 70%);
+                    border-radius: 50%;
+                    animation: float 20s ease-in-out infinite;
+                }
+
+                .contact-cta::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -40%;
+                    left: -15%;
+                    width: 500px;
+                    height: 500px;
+                    background: radial-gradient(circle, rgba(255, 107, 157, 0.12) 0%, transparent 70%);
+                    border-radius: 50%;
+                    animation: float 15s ease-in-out infinite reverse;
+                }
+
+                .contact-cta-content {
+                    position: relative;
+                    z-index: 2;
                 }
 
                 .contact-cta h2 {
                     font-size: 3rem;
                     margin-bottom: 1rem;
+                    color: #1a1a1a;
+                    background: linear-gradient(135deg, #1a1a1a 0%, #FF6B9D 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
                 }
 
                 .cta-call-button {
-                    background: white;
-                    color: #1a1a1a;
+                    background: #FF6B9D;
+                    color: white;
                     border: none;
                     padding: 1.25rem 3rem;
                     border-radius: 50px;
@@ -586,16 +620,43 @@ export default function ContactPage() {
                     display: inline-flex;
                     align-items: center;
                     gap: 0.5rem;
-                    transition: transform 0.2s;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
                 }
 
                 .cta-call-button:hover {
-                    transform: scale(1.05);
+                    transform: translateY(-2px);
+                    box-shadow: 0 15px 40px rgba(255, 107, 157, 0.4);
+                    background: #ff528b;
+                }
+
+                .cta-subtitle {
+                    color: #666;
+                    font-size: 1rem;
                 }
 
                 .cta-subtitle a {
                     color: #FF6B9D;
                     text-decoration: none;
+                    font-weight: 600;
+                    transition: color 0.2s ease;
+                }
+
+                .cta-subtitle a:hover {
+                    color: #E5427A;
+                    text-decoration: underline;
+                }
+
+                @keyframes float {
+                    0%, 100% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+                    33% {
+                        transform: translate(30px, -30px) rotate(120deg);
+                    }
+                    66% {
+                        transform: translate(-20px, 20px) rotate(240deg);
+                    }
                 }
 
                 @keyframes pulse {
