@@ -12,7 +12,12 @@ export const salons: Salon[] = [
         rating: 4.8,
         reviewCount: 245,
         imageUrl: '/salon-1.jpg',
-        services: ['haircut', 'hair-coloring', 'spa-treatment', 'makeup'],
+        services: [
+            { name: 'Haircut', price: 1000 },
+            { name: 'Hair Coloring', price: 3500 },
+            { name: 'Spa Treatment', price: 4500 },
+            { name: 'Makeup', price: 5000 }
+        ],
         priceRange: {
             min: 800,
             max: 5000,
@@ -29,7 +34,12 @@ export const salons: Salon[] = [
         rating: 4.7,
         reviewCount: 189,
         imageUrl: '/salon-2.jpg',
-        services: ['haircut', 'hair-coloring', 'manicure-pedicure', 'facial'],
+        services: [
+            { name: 'Haircut', price: 800 },
+            { name: 'Hair Coloring', price: 3000 },
+            { name: 'Manicure & Pedicure', price: 1200 },
+            { name: 'Facial', price: 1500 }
+        ],
         priceRange: {
             min: 700,
             max: 4500,
@@ -46,7 +56,12 @@ export const salons: Salon[] = [
         rating: 4.9,
         reviewCount: 312,
         imageUrl: '/salon-3.jpg',
-        services: ['haircut', 'spa-treatment', 'facial', 'makeup'],
+        services: [
+            { name: 'Haircut', price: 900 },
+            { name: 'Spa Treatment', price: 4000 },
+            { name: 'Facial', price: 2000 },
+            { name: 'Makeup', price: 3500 }
+        ],
         priceRange: {
             min: 900,
             max: 6000,
@@ -63,7 +78,11 @@ export const salons: Salon[] = [
         rating: 4.6,
         reviewCount: 156,
         imageUrl: '/salon-4.jpg',
-        services: ['makeup', 'haircut', 'hair-coloring'],
+        services: [
+            { name: 'Bridal Makeup', price: 8000 },
+            { name: 'Haircut', price: 1000 },
+            { name: 'Hair Coloring', price: 4000 }
+        ],
         priceRange: {
             min: 1000,
             max: 8000,
@@ -80,7 +99,12 @@ export const salons: Salon[] = [
         rating: 4.7,
         reviewCount: 203,
         imageUrl: '/salon-5.jpg',
-        services: ['haircut', 'manicure-pedicure', 'facial', 'hair-coloring'],
+        services: [
+            { name: 'Haircut', price: 600 },
+            { name: 'Manicure & Pedicure', price: 1000 },
+            { name: 'Facial', price: 1200 },
+            { name: 'Hair Coloring', price: 2500 }
+        ],
         priceRange: {
             min: 600,
             max: 4000,
@@ -97,7 +121,12 @@ export const salons: Salon[] = [
         rating: 4.8,
         reviewCount: 278,
         imageUrl: '/salon-6.jpg',
-        services: ['haircut', 'hair-coloring', 'makeup', 'spa-treatment'],
+        services: [
+            { name: 'Haircut', price: 850 },
+            { name: 'Hair Coloring', price: 3200 },
+            { name: 'Makeup', price: 2500 },
+            { name: 'Spa Treatment', price: 3000 }
+        ],
         priceRange: {
             min: 850,
             max: 5500,

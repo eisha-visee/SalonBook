@@ -84,7 +84,9 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
 
             const detectSound = () => {
                 if (mediaRecorder.state !== 'recording') {
-                    audioContext.close();
+                    if (audioContext.state !== 'closed') {
+                        audioContext.close();
+                    }
                     return;
                 }
 
@@ -112,7 +114,9 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                         // Stop after 1.5 seconds of silence
                         mediaRecorder.stop();
                         setIsListening(false);
-                        audioContext.close();
+                        if (audioContext.state !== 'closed') {
+                            audioContext.close();
+                        }
                         return;
                     }
                 }
@@ -132,7 +136,9 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
                     await processAudio(audioBlob);
                 }
                 stream.getTracks().forEach(track => track.stop());
-                audioContext.close();
+                if (audioContext.state !== 'closed') {
+                    audioContext.close();
+                }
             };
 
             mediaRecorder.start();

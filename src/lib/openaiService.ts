@@ -59,10 +59,11 @@ export class OpenAIService {
 
             return transcription.text;
         } catch (error: any) {
-            console.error('OpenAI Whisper error:', error);
             if (error?.status === 429) {
+                console.log('⚠️ OpenAI Whisper quota exceeded, falling back to next service');
                 throw new Error('QUOTA_EXCEEDED');
             }
+            console.error('OpenAI Whisper error:', error);
             throw new Error(`Whisper transcription failed: ${error?.message || 'Unknown error'}`);
         }
     }
@@ -95,10 +96,11 @@ export class OpenAIService {
 
             return { response };
         } catch (error: any) {
-            console.error('OpenAI GPT error:', error);
             if (error?.status === 429) {
+                console.log('⚠️ OpenAI GPT quota exceeded, falling back to next service');
                 throw new Error('QUOTA_EXCEEDED');
             }
+            console.error('OpenAI GPT error:', error);
             throw new Error(`GPT conversation failed: ${error?.message || 'Unknown error'}`);
         }
     }

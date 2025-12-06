@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
+import ProfileMenu from '@/components/admin/ProfileMenu';
+
 export default function AdminLayout({
     children,
 }: {
@@ -73,17 +75,7 @@ export default function AdminLayout({
                             <h2>Admin Panel</h2>
                         </div>
 
-                        <div className="admin-user-profile">
-                            <div className="admin-user-info">
-                                <span className="admin-user-name">
-                                    {user?.email?.split('@')[0] || 'Admin'}
-                                </span>
-                                <span className="admin-user-role">Admin</span>
-                            </div>
-                            <div className="admin-user-avatar">
-                                {user?.email?.charAt(0).toUpperCase() || 'A'}
-                            </div>
-                        </div>
+                        <ProfileMenu />
                     </header>
 
                     <div className="admin-content">
