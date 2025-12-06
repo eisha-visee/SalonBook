@@ -169,25 +169,6 @@ export default function ClientsPage() {
             },
         ];
 
-    const actions = (row: Client) => (
-        <div className="action-buttons">
-            <button
-                className="btn-icon"
-                onClick={() => alert('View booking history')}
-                title="View History"
-            >
-                📊
-            </button>
-            <button
-                className="btn-icon"
-                onClick={() => alert('Send email')}
-                title="Send Email"
-            >
-                📧
-            </button>
-        </div>
-    );
-
     if (loading) {
         return (
             <div className="clients-page">
@@ -251,7 +232,6 @@ export default function ClientsPage() {
             <DataTable
                 data={clients}
                 columns={columns}
-                actions={actions}
                 searchable={true}
                 searchKeys={['name', 'email', 'phone']}
                 title="All Clients"
