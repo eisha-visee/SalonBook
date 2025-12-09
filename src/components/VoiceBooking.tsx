@@ -249,14 +249,14 @@ export default function VoiceBooking({ isOpen, onClose }: VoiceBookingProps) {
 
                 <div className="header">
                     <div className={`avatar ${isListening ? 'listening' : isProcessing ? 'processing' : ''}`}>
-                        {isListening ? '🎤' : isProcessing ? '🤔' : '🤖'}
+                        {isListening ? '🎤' : isProcessing ? '⚙️' : '🤖'}
                     </div>
                     <h2>Multi-Service AI Assistant</h2>
                     <p className="status">
-                        {error ? <span className="error">❌ {error}</span> :
-                            isListening ? '🔴 Recording...' :
+                        {error ? <span className="error">⚠️ {error}</span> :
+                            isListening ? '📢 Recording...' :
                                 isProcessing ? '⏳ Processing...' :
-                                    '✅ Ready to help'}
+                                    '👂 Ready to help'}
                     </p>
                     {activeServices.stt && (
                         <p className="service-info">

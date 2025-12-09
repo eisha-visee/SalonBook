@@ -1,16 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import AdminChat from '@/components/AdminChat';
 
 export default function AdminDashboard() {
-    const [chatActions, setChatActions] = useState<any[]>([]);
-
-    const handleActionExecuted = (result: any) => {
-        setChatActions(prev => [...prev, result]);
-    };
-
     return (
         <div className="admin-dashboard">
             <div className="page-header">
@@ -21,9 +13,6 @@ export default function AdminDashboard() {
             <div className="dashboard-grid">
                 <div className="analytics-section">
                     <AnalyticsDashboard />
-                </div>
-                <div className="chat-section">
-                    <AdminChat onActionExecuted={handleActionExecuted} />
                 </div>
             </div>
 
@@ -47,22 +36,12 @@ export default function AdminDashboard() {
 
                 .dashboard-grid {
                     display: grid;
-                    grid-template-columns: 1fr 1fr;
+                    grid-template-columns: 1fr;
                     gap: 2rem;
                 }
 
                 .analytics-section {
                     flex: 1;
-                }
-
-                .chat-section {
-                    flex: 1;
-                }
-
-                @media (max-width: 1200px) {
-                    .dashboard-grid {
-                        grid-template-columns: 1fr;
-                    }
                 }
             `}</style>
         </div>

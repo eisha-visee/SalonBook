@@ -12,16 +12,11 @@ export default function ContactPage() {
     };
 
     const handleAICallClick = () => {
-        // Open AI voice assistant modal
         setIsCallActive(true);
     };
 
     return (
         <>
-            <VoiceBooking
-                isOpen={isCallActive}
-                onClose={() => setIsCallActive(false)}
-            />
             <div className="contact-page">
                 {/* Hero Section */}
                 <section className="contact-hero">
@@ -675,6 +670,8 @@ export default function ContactPage() {
                     .ai-stats { grid-template-columns: 1fr; }
                 }
             `}</style>
+
+            <VoiceBooking isOpen={isCallActive} onClose={() => setIsCallActive(false)} />
         </>
     );
 }

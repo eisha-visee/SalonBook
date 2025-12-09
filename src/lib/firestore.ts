@@ -181,3 +181,65 @@ export const createEmployee = async (employeeData: any) => {
         throw error;
     }
 };
+
+// Revenue
+export const getRevenue = async (date: string) => {
+    // date format: YYYY-MM-DD
+    try {
+        const q = query(
+            collection(db, 'daily_revenue'),
+            where('date', '==', date)
+        );
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+            return 0;
+        }
+        // Assuming one document per day
+        return querySnapshot.docs[0].data().totalAmount || 0;
+    } catch (error) {
+        console.error('Error getting revenue:', error);
+        throw error;
+    }
+};
+
+// Admin Actions
+export const reassignAppointments = async (employeeName: string, date: string) => {
+    try {
+        // 1. Find employee ID by name
+        const empQuery = query(
+            collection(db, COLLECTIONS.EMPLOYEES),
+            where('name', '==', employeeName)
+        );
+        const empSnap = await getDocs(empQuery);
+
+        if (empSnap.empty) {
+            throw new Error(`Employee ${employeeName} not found`);
+        }
+
+        const employeeId = empSnap.docs[0].id;
+
+        // 2. Find all bookings for this employee on this date
+        // Note: In a real app, date comparison might need start/end timestamps
+        const bookingsQuery = query(
+            collection(db, COLLECTIONS.BOOKINGS),
+            where('employeeId', '==', employeeId),
+            where('date', '==', date)
+        );
+        const bookingsSnap = await getDocs(bookingsQuery);
+
+        const updates = [];
+        for (const bookingDoc of bookingsSnap.docs) {
+            updates.push(updateDoc(bookingDoc.ref, {
+                status: 'reschedule',
+                previousEmployeeId: employeeId,
+                updatedAt: Timestamp.now()
+            }));
+        }
+
+        await Promise.all(updates);
+        return bookingsSnap.size; // Return count of rescheduled appointments
+    } catch (error) {
+        console.error('Error reassigning appointments:', error);
+        throw error; // Re-throw to handle in service
+    }
+};

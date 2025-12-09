@@ -1,6 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+let genAIInstance: GoogleGenerativeAI | null = null;
+
+export const getGeminiClient = () => {
+    if (!genAIInstance) {
+        genAIInstance = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+    }
+    return genAIInstance;
+};
 
 export interface BookingData {
     customerName?: string;
@@ -61,7 +68,7 @@ export class GeminiConversation {
     private chat;
 
     constructor() {
-        this.model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+        this.model = getGeminiClient().getGenerativeModel({ model: 'gemini-pro' });
         this.chat = this.model.startChat({
             history: [
                 {

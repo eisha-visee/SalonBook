@@ -2,10 +2,17 @@ import Groq from 'groq-sdk';
 import { BookingData } from './geminiService';
 import { buildSystemPromptWithLocations, getSalonsByCity } from './locationHelper';
 
-const groq = new Groq({
-    apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
-    dangerouslyAllowBrowser: true
-});
+let groqInstance: Groq | null = null;
+
+export const getGroqClient = () => {
+    if (!groqInstance) {
+        groqInstance = new Groq({
+            apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY || 'dummy_key', // Prevent crash if missing, handle auth error later
+            dangerouslyAllowBrowser: true
+        });
+    }
+    return groqInstance;
+};
 
 export class GroqService {
     private conversationHistory: Array<{ role: string; content: string }> = [];
@@ -29,7 +36,7 @@ export class GroqService {
         try {
             this.conversationHistory.push({ role: 'user', content: message });
 
-            const completion = await groq.chat.completions.create({
+            const completion = await getGroqClient().chat.completions.create({
                 model: 'llama-3.3-70b-versatile', // Fast Groq model
                 messages: this.conversationHistory as any,
             });

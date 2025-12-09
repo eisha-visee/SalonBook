@@ -7,6 +7,8 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 import ProfileMenu from '@/components/admin/ProfileMenu';
 
+import AdminChatbot from '@/components/admin/AdminChatbot';
+
 export default function AdminLayout({
     children,
 }: {
@@ -82,6 +84,7 @@ export default function AdminLayout({
                         {children}
                     </div>
                 </main>
+                <AdminChatbot />
             </div>
         </ProtectedRoute>
     );
