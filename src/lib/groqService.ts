@@ -37,7 +37,7 @@ export class GroqService {
             this.conversationHistory.push({ role: 'user', content: message });
 
             const completion = await getGroqClient().chat.completions.create({
-                model: 'llama-3.3-70b-versatile', // Fast Groq model
+                model: 'llama3-70b-8192', // Fast Groq model
                 messages: this.conversationHistory as any,
             });
 

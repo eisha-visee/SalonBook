@@ -127,9 +127,6 @@ export default function DataTable<T extends { id: string | number }>({
                             />
                         </div>
                     )}
-                    {!onExport && <button onClick={handleExport} className="btn-export">
-                        📥 Export CSV
-                    </button>}
                 </div>
             </div>
 
@@ -288,6 +285,29 @@ export default function DataTable<T extends { id: string | number }>({
 
                 .table-responsive {
                     overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                    width: 100%;
+                    max-width: 100%;
+                    display: block;
+                    padding-bottom: 0.5rem; /* Space for scrollbar */
+                }
+
+                .table-responsive::-webkit-scrollbar {
+                    height: 8px;
+                }
+
+                .table-responsive::-webkit-scrollbar-track {
+                    background: #F3F4F6;
+                    border-radius: 4px;
+                }
+
+                .table-responsive::-webkit-scrollbar-thumb {
+                    background: #D1D5DB;
+                    border-radius: 4px;
+                }
+
+                .table-responsive::-webkit-scrollbar-thumb:hover {
+                    background: #9CA3AF;
                 }
 
                 .data-table {
@@ -297,7 +317,7 @@ export default function DataTable<T extends { id: string | number }>({
 
                 .data-table th {
                     text-align: left;
-                    padding: 1rem;
+                    padding: 0.75rem 1rem;
                     background: #F9FAFB;
                     color: #6B7280;
                     font-weight: 600;
@@ -305,6 +325,7 @@ export default function DataTable<T extends { id: string | number }>({
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
                     border-bottom: 1px solid #E5E7EB;
+                    white-space: nowrap;
                 }
 
                 .data-table th.sortable {
@@ -322,10 +343,27 @@ export default function DataTable<T extends { id: string | number }>({
                 }
 
                 .data-table td {
-                    padding: 1rem;
+                    padding: 0.75rem 1rem;
                     border-bottom: 1px solid #E5E7EB;
                     color: #374151;
                     font-size: 0.875rem;
+                    white-space: nowrap;
+                }
+
+                .data-table th:last-child {
+                    position: sticky;
+                    right: 0;
+                    background: #F9FAFB;
+                    z-index: 20;
+                    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+                }
+
+                .data-table td:last-child {
+                    position: sticky;
+                    right: 0;
+                    background: white;
+                    z-index: 10;
+                    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
                 }
 
                 .data-table tr:last-child td {

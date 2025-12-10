@@ -53,7 +53,7 @@ export default function EmployeeSelectionModal({ isOpen, onClose, onSelect }: Em
     const filteredEmployees = employees.filter(emp =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.specialties.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+        (emp.specialties || []).some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const handleSelect = (employee: Employee) => {
@@ -107,14 +107,14 @@ export default function EmployeeSelectionModal({ isOpen, onClose, onSelect }: Em
                                         <h3>{employee.name}</h3>
                                         <p className="employee-role">🎯 {employee.role}</p>
                                         <div className="employee-specialties">
-                                            {employee.specialties.slice(0, 3).map((specialty, idx) => (
+                                            {(employee.specialties || []).slice(0, 3).map((specialty, idx) => (
                                                 <span key={idx} className="specialty-badge">
                                                     {specialty}
                                                 </span>
                                             ))}
-                                            {employee.specialties.length > 3 && (
+                                            {(employee.specialties || []).length > 3 && (
                                                 <span className="specialty-badge more">
-                                                    +{employee.specialties.length - 3}
+                                                    +{(employee.specialties || []).length - 3}
                                                 </span>
                                             )}
                                         </div>

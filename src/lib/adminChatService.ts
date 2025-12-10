@@ -8,30 +8,39 @@ const cohere = new CohereClient({
 
 const SYSTEM_PROMPT = `
 You are a smart admin assistant for a salon management system.
-You can help with:
-1. Adding new employees.
-2. Checking revenue.
-3. Reassigning appointments.
+You help the owner manage employees, bookings, and revenue.
 
-Analyze the user's message and current conversation history.
-Determine the INTENT and extract ENTITIES.
+Supported Actions:
+1. ADD_EMPLOYEE: Add a new staff member. Required: Name, Role, Phone, Email.
+2. GET_REVENUE: Check income. 
+3. REASSIGN_APPOINTMENTS: Handle staff absence.
+4. ASSIGN_BOOKING: Assign or Reassign a specific booking to a stylist. Required: BookingID, StylistName.
+5. CANCEL_BOOKING: Cancel a booking. Required: BookingID.
+6. CHAT: Answer general questions about salon management, best practices, customer service, etc.
 
-Return a JSON object in this EXACT format (no markdown):
+Analyze the user's message.
+Return a JSON object in this EXACT format:
 {
-  "intent": "ADD_EMPLOYEE" | "GET_REVENUE" | "REASSIGN_APPOINTMENTS" | "CHAT" | "UNKNOWN",
+  "intent": "ADD_EMPLOYEE" | "GET_REVENUE" | "REASSIGN_APPOINTMENTS" | "ASSIGN_BOOKING" | "CANCEL_BOOKING" | "CHAT",
   "entities": {
-     // For ADD_EMPLOYEE: name, role, specialties (array), joinDate, phone, email
-     // For GET_REVENUE: date (YYYY-MM-DD)
-     // For REASSIGN_APPOINTMENTS: employeeName, date (YYYY-MM-DD)
+    "name": "string",
+    "role": "string",
+    "phone": "string",
+    "email": "string",
+    "date": "YYYY-MM-DD",
+    "bookingId": "string",
+    "stylistName": "string"
   },
-  "response": "A helpful natural language response to the user. If information is missing, ask for it."
+  "response": "Natural language response."
 }
 
 Rules:
-- If the user wants to add an employee but is missing details (like Name or Role), ask for them in the "response" and set intent to "CHAT".
-- Only set intent to "ADD_EMPLOYEE" when you have at least Name and Role. Defaults: joinDate = today, rating = 5, status = 'available'.
-- For GET_REVENUE: If user says "yesterday", "today", calculate the date.
-- For REASSIGN_APPOINTMENTS: If user says "Rahul is on leave today", infer intent is REASSIGN_APPOINTMENTS.
+- For ADD_EMPLOYEE: 
+  - Check conversation history for Name, Role, Phone, and Email.
+  - If ANY are missing, set intent="CHAT" and ask specifically for the missing fields.
+  - **CRITICAL**: When you finally have ALL 4 fields (Name, Role, Phone, Email), you MUST return intent="ADD_EMPLOYEE" and include ALL of them in the "entities" object. Do not omit fields you collected in previous turns.
+- If valid action details are missing for other actions, set intent="CHAT" and ask for them.
+- For general questions (e.g., "How to handle angry customers?"), set intent="CHAT" and provide a helpful, professional answer.
 
 Current Date: ${new Date().toISOString().split('T')[0]}
 `;
@@ -47,7 +56,7 @@ export const processAdminMessage = async (message: string, history: any[]): Prom
     try {
         console.log("Trying Cohere...");
         const response = await cohere.chat({
-            model: "command-r", // Fixed: command-r-plus is deprecated
+            model: "command-r-08-2024", // Fixed: command-r is deprecated
             message: message,
             preamble: SYSTEM_PROMPT,
             chatHistory: history.map(h => ({ role: h.role === 'user' ? 'USER' : 'CHATBOT', message: h.message })),
@@ -67,7 +76,10 @@ export const processAdminMessage = async (message: string, history: any[]): Prom
         // 2. Try Gemini
         try {
             console.log("Trying Gemini...");
-            const model = getGeminiClient().getGenerativeModel({ model: "gemini-1.5-flash" }); // Fixed: gemini-pro 404s, use 1.5-flash
+            const geminiClient = getGeminiClient();
+            if (!geminiClient) throw new Error("Gemini client initialization failed");
+
+            const model = geminiClient.getGenerativeModel({ model: "gemini-pro" }); // Fixed: fallback to stable gemini-pro
 
             const chat = model.startChat({
                 history: [
@@ -96,12 +108,15 @@ export const processAdminMessage = async (message: string, history: any[]): Prom
             // 3. Try Groq
             try {
                 console.log("Trying Groq...");
-                const completion = await getGroqClient().chat.completions.create({
-                    model: "llama-3.3-70b-versatile",
+                const groqClient = getGroqClient();
+                if (!groqClient) throw new Error("Groq client initialization failed");
+
+                const completion = await groqClient.chat.completions.create({
+                    model: "llama3-70b-8192", // Fixed: Use stable model ID
                     messages: [
                         { role: "system", content: SYSTEM_PROMPT },
                         ...history.map(h => ({
-                            role: h.role === 'user' ? 'user' : 'assistant', // Fixed: 'model' is invalid for Groq
+                            role: (h.role === 'user' ? 'user' : 'assistant') as "user" | "assistant",
                             content: h.message
                         })),
                         { role: "user", content: message }

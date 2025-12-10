@@ -171,6 +171,20 @@ export const getEmployees = async () => {
 
 export const createEmployee = async (employeeData: any) => {
     try {
+        // Check for duplicate (by email or phone)
+        const q = query(
+            collection(db, COLLECTIONS.EMPLOYEES),
+            where('email', '==', employeeData.email)
+            // Note: Firestore requires composite index for OR queries or multiple queries. 
+            // For simplicity/speed, we check email first.
+        );
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+            console.log("Employee already exists, skipping creation.");
+            return snapshot.docs[0].id; // Return existing ID
+        }
+
         const docRef = await addDoc(collection(db, COLLECTIONS.EMPLOYEES), {
             ...employeeData,
             createdAt: Timestamp.now(),
@@ -205,18 +219,17 @@ export const getRevenue = async (date: string) => {
 // Admin Actions
 export const reassignAppointments = async (employeeName: string, date: string) => {
     try {
-        // 1. Find employee ID by name
-        const empQuery = query(
-            collection(db, COLLECTIONS.EMPLOYEES),
-            where('name', '==', employeeName)
+        // 1. Find employee ID by name (Case Insensitive)
+        const employeesSnap = await getDocs(collection(db, COLLECTIONS.EMPLOYEES));
+        const employeeDoc = employeesSnap.docs.find(doc =>
+            doc.data().name?.toLowerCase() === employeeName.toLowerCase()
         );
-        const empSnap = await getDocs(empQuery);
 
-        if (empSnap.empty) {
+        if (!employeeDoc) {
             throw new Error(`Employee ${employeeName} not found`);
         }
 
-        const employeeId = empSnap.docs[0].id;
+        const employeeId = employeeDoc.id;
 
         // 2. Find all bookings for this employee on this date
         // Note: In a real app, date comparison might need start/end timestamps
@@ -241,5 +254,104 @@ export const reassignAppointments = async (employeeName: string, date: string) =
     } catch (error) {
         console.error('Error reassigning appointments:', error);
         throw error; // Re-throw to handle in service
+    }
+};
+
+export const assignBookingToEmployee = async (bookingId: string, employeeName: string) => {
+    try {
+        console.log(`Attempting to assign booking ${bookingId} to ${employeeName}`);
+
+        // 1. Find employee ID by name (Case Insensitive)
+        const employeesSnap = await getDocs(collection(db, COLLECTIONS.EMPLOYEES));
+        const employeeDoc = employeesSnap.docs.find(doc =>
+            doc.data().name?.toLowerCase() === employeeName.toLowerCase()
+        );
+
+        if (!employeeDoc) {
+            console.error(`Employee not found: ${employeeName}`);
+            throw new Error(`Employee '${employeeName}' not found. Please verify the name.`);
+        }
+
+        const employeeId = employeeDoc.id;
+        const actualEmployeeName = employeeDoc.data().name; // Use DB name for consistency
+
+        // 2. Update Booking
+        // Handle "formatted" IDs (like #7hCFkw) or partial IDs using search
+        let cleanBookingId = bookingId.startsWith('#') ? bookingId.substring(1) : bookingId;
+
+        let bookingRef = doc(db, COLLECTIONS.BOOKINGS, cleanBookingId);
+        let bookingSnap = await getDoc(bookingRef);
+
+        // If direct lookup fails, try searching by prefix (handle truncated IDs from UI)
+        if (!bookingSnap.exists()) {
+            console.log(`Direct lookup failed for ${cleanBookingId}, trying partial match...`);
+            const bookingsQuery = query(collection(db, COLLECTIONS.BOOKINGS), orderBy('createdAt', 'desc'), limit(100));
+            const bookingsSnap = await getDocs(bookingsQuery);
+
+            const match = bookingsSnap.docs.find(d => d.id.startsWith(cleanBookingId));
+            if (match) {
+                bookingRef = match.ref;
+                bookingSnap = match;
+                cleanBookingId = match.id;
+                console.log(`Found partial match: ${match.id}`);
+            } else {
+                console.error(`Booking not found: ${cleanBookingId}`);
+                throw new Error(`Booking ID '${bookingId}' not found.`);
+            }
+        }
+
+        await updateDoc(bookingRef, {
+            assignedEmployeeId: employeeId,
+            assignedEmployeeName: actualEmployeeName,
+            status: 'assigned',
+            updatedAt: Timestamp.now()
+        });
+
+        // Also update the employee's status to 'busy'
+        const employeeRef = doc(db, COLLECTIONS.EMPLOYEES, employeeId);
+        await updateDoc(employeeRef, {
+            status: 'busy',
+            updatedAt: Timestamp.now()
+        });
+
+        console.log(`Successfully assigned ${cleanBookingId} to ${actualEmployeeName} and marked as busy`);
+        return actualEmployeeName;
+
+    } catch (error) {
+        console.error('Error in assignBookingToEmployee:', error);
+        throw error;
+    }
+};
+
+export const cancelBooking = async (bookingId: string) => {
+    try {
+        let cleanBookingId = bookingId.startsWith('#') ? bookingId.substring(1) : bookingId;
+        let bookingRef = doc(db, COLLECTIONS.BOOKINGS, cleanBookingId);
+        let bookingSnap = await getDoc(bookingRef);
+
+        // Partial match fallback
+        if (!bookingSnap.exists()) {
+            const bookingsQuery = query(collection(db, COLLECTIONS.BOOKINGS), orderBy('createdAt', 'desc'), limit(100));
+            const bookingsSnap = await getDocs(bookingsQuery);
+
+            const match = bookingsSnap.docs.find(d => d.id.startsWith(cleanBookingId));
+            if (match) {
+                bookingRef = match.ref;
+                bookingSnap = match;
+                cleanBookingId = match.id;
+            } else {
+                throw new Error(`Booking ID '${bookingId}' not found.`);
+            }
+        }
+
+        await updateDoc(bookingRef, {
+            status: 'cancelled',
+            updatedAt: Timestamp.now()
+        });
+
+        return cleanBookingId;
+    } catch (error) {
+        console.error('Error canceling booking:', error);
+        throw error;
     }
 };

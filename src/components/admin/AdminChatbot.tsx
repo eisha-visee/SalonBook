@@ -59,140 +59,248 @@ export default function AdminChatbot() {
     };
 
     return (
-        <div className="admin-chatbot-container" style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000 }}>
-            {/* Toggle Button */}
-            {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    style={{
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '50%',
-                        backgroundColor: '#FF69B4', // Hot Pink
-                        color: 'white',
-                        border: 'none',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '24px',
-                        transition: 'transform 0.2s'
-                    }}
-                    onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                    onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                    💬
-                </button>
-            )}
+        <>
+            <div className="admin-chatbot-container">
+                {/* Toggle Button */}
+                {!isOpen && (
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        className="chat-toggle-btn"
+                    >
+                        💬
+                    </button>
+                )}
 
-            {/* Chat Window */}
-            {isOpen && (
-                <div style={{
-                    width: '350px',
-                    height: '500px',
-                    backgroundColor: 'white',
-                    borderRadius: '16px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    border: '1px solid #eee'
-                }}>
-                    {/* Header */}
-                    <div style={{
-                        padding: '16px',
-                        backgroundColor: '#FF69B4',
-                        color: 'white',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
-                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Admin Assistant</h3>
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '20px' }}
-                        >
-                            ×
-                        </button>
-                    </div>
-
-                    {/* Messages */}
-                    <div style={{
-                        flex: 1,
-                        padding: '16px',
-                        overflowY: 'auto',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px',
-                        backgroundColor: '#f9f9f9'
-                    }}>
-                        {messages.map((msg, idx) => (
-                            <div
-                                key={idx}
-                                style={{
-                                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                                    backgroundColor: msg.role === 'user' ? '#FF69B4' : 'white',
-                                    color: msg.role === 'user' ? 'white' : '#333',
-                                    padding: '10px 14px',
-                                    borderRadius: '12px',
-                                    maxWidth: '80%',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                    fontSize: '14px',
-                                    lineHeight: '1.4'
-                                }}
+                {/* Chat Window */}
+                {isOpen && (
+                    <div className="chat-window">
+                        {/* Header */}
+                        <div className="chat-header">
+                            <div className="chat-title">
+                                <span>🤖</span> Admin Assistant
+                            </div>
+                            <button
+                                onClick={() => setIsOpen(false)}
+                                className="chat-close-btn"
                             >
-                                {msg.message}
-                            </div>
-                        ))}
-                        {isLoading && (
-                            <div style={{ alignSelf: 'flex-start', backgroundColor: 'white', padding: '10px', borderRadius: '12px', color: '#666' }}>
-                                Thinking...
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
+                                ×
+                            </button>
+                        </div>
 
-                    {/* Input Area */}
-                    <form onSubmit={handleSubmit} style={{
-                        padding: '12px',
-                        borderTop: '1px solid #eee',
-                        backgroundColor: 'white',
-                        display: 'flex',
-                        gap: '8px'
-                    }}>
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type a command..."
-                            style={{
-                                flex: 1,
-                                padding: '10px',
-                                borderRadius: '8px',
-                                border: '1px solid #ddd',
-                                outline: 'none',
-                                fontSize: '14px'
-                            }}
-                        />
-                        <button
-                            type="submit"
-                            disabled={isLoading || !input.trim()}
-                            style={{
-                                backgroundColor: '#FF69B4',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                padding: '0 16px',
-                                cursor: 'pointer',
-                                opacity: isLoading ? 0.7 : 1
-                            }}
-                        >
-                            ➤
-                        </button>
-                    </form>
-                </div>
-            )}
-        </div>
+                        {/* Messages */}
+                        <div className="chat-messages">
+                            {messages.map((msg, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`message ${msg.role}`}
+                                >
+                                    {msg.message}
+                                </div>
+                            ))}
+                            {isLoading && (
+                                <div className="message model">
+                                    <span className="typing-indicator">Thinking...</span>
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Input Area */}
+                        <form onSubmit={handleSubmit} className="chat-input-form">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Type a command..."
+                                disabled={isLoading}
+                                className="chat-input"
+                            />
+                            <button
+                                type="submit"
+                                disabled={isLoading || !input.trim()}
+                                className="chat-send-btn"
+                            >
+                                ➤
+                            </button>
+                        </form>
+                    </div>
+                )}
+            </div>
+
+            <style jsx>{`
+                .admin-chatbot-container {
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    z-index: 1000;
+                }
+
+                .chat-toggle-btn {
+                    width: 60px;
+                    height: 60px;
+                    border-radius: 50%;
+                    background-color: #FF69B4;
+                    color: white;
+                    border: none;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                    transition: transform 0.2s;
+                }
+
+                .chat-toggle-btn:hover {
+                    transform: scale(1.1);
+                }
+
+                .chat-window {
+                    width: 350px;
+                    height: 500px;
+                    background-color: white;
+                    border-radius: 16px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    border: 1px solid #eee;
+                    animation: slideUp 0.3s ease;
+                }
+
+                .chat-header {
+                    padding: 16px;
+                    background-color: #FF69B4;
+                    color: white;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .chat-title {
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .chat-close-btn {
+                    background: none;
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 24px;
+                    padding: 0;
+                    line-height: 1;
+                }
+
+                .chat-messages {
+                    flex: 1;
+                    padding: 16px;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    background-color: #f9f9f9;
+                }
+
+                .message {
+                    padding: 10px 14px;
+                    border-radius: 12px;
+                    max-width: 80%;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    font-size: 14px;
+                    line-height: 1.4;
+                    word-break: break-word;
+                }
+
+                .message.user {
+                    align-self: flex-end;
+                    background-color: #FF69B4;
+                    color: white;
+                    border-bottom-right-radius: 4px;
+                }
+
+                .message.model {
+                    align-self: flex-start;
+                    background-color: white;
+                    color: #333;
+                    border: 1px solid #eee;
+                    border-bottom-left-radius: 4px;
+                }
+
+                .chat-input-form {
+                    padding: 12px;
+                    border-top: 1px solid #eee;
+                    background-color: white;
+                    display: flex;
+                    gap: 8px;
+                }
+
+                .chat-input {
+                    flex: 1;
+                    padding: 10px;
+                    border-radius: 8px;
+                    border: 1px solid #ddd;
+                    outline: none;
+                    font-size: 14px;
+                }
+
+                .chat-input:focus {
+                    border-color: #FF69B4;
+                }
+
+                .chat-send-btn {
+                    background-color: #FF69B4;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 0 16px;
+                    cursor: pointer;
+                    font-size: 16px;
+                }
+
+                .chat-send-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+
+                @keyframes slideUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                /* Mobile Responsiveness */
+                @media (max-width: 480px) {
+                    .admin-chatbot-container {
+                        bottom: 0;
+                        right: 0;
+                        z-index: 10000;
+                    }
+
+                    .chat-toggle-btn {
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                    }
+
+                    .chat-window {
+                        position: fixed;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        width: 100%;
+                        height: 100%; /* Full screen on mobile */
+                        max-height: 100%;
+                        border-radius: 0;
+                        border: none;
+                    }
+
+                    .chat-messages {
+                        padding-bottom: 20px; 
+                    }
+                }
+            `}</style>
+        </>
     );
 }

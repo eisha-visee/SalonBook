@@ -41,14 +41,15 @@ export default function ClientsPage() {
 
             bookingsSnapshot.docs.forEach(doc => {
                 const booking = doc.data();
-                const email = booking.customerEmail;
+                // Generate a robust ID: Prefer Email -> Phone -> BookingID (as last resort for unidentifiable bookings)
+                const clientId = booking.customerEmail || booking.customerPhone || doc.id;
 
-                if (!clientMap.has(email)) {
-                    clientMap.set(email, {
-                        id: email,
-                        name: booking.customerName,
-                        email: email,
-                        phone: booking.customerPhone,
+                if (!clientMap.has(clientId)) {
+                    clientMap.set(clientId, {
+                        id: clientId,
+                        name: booking.customerName || 'Unknown Guest',
+                        email: booking.customerEmail || '',
+                        phone: booking.customerPhone || '',
                         totalBookings: 0,
                         totalSpent: 0,
                         preferredServices: [],
@@ -57,7 +58,7 @@ export default function ClientsPage() {
                     });
                 }
 
-                const client = clientMap.get(email)!;
+                const client = clientMap.get(clientId)!;
                 client.totalBookings += 1;
                 client.totalSpent += booking.totalAmount || 0;
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DataTable from '@/components/admin/DataTable';
 
@@ -45,56 +45,200 @@ const StatusDropdown = ({ currentStatus, onStatusChange }: { currentStatus: stri
     }, []);
 
     return (
-        <div className="status-dropdown-container" ref={dropdownRef}>
-            <button
-                className={`status-trigger-btn ${isOpen ? 'active' : ''}`}
-                onClick={() => setIsOpen(!isOpen)}
-                type="button"
-            >
-                <div className="status-content-wrapper">
-                    <span
-                        className="status-dot"
-                        style={{ backgroundColor: currentOption.color }}
-                    ></span>
-                    <span className="status-text">{currentOption.label}</span>
-                </div>
-                <span className={`dropdown-arrow ${isOpen ? 'rotate' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                </span>
-            </button>
+        <>
+            <div className="status-dropdown-container" ref={dropdownRef}>
+                <button
+                    className={`status-trigger-btn ${isOpen ? 'active' : ''}`}
+                    onClick={() => setIsOpen(!isOpen)}
+                    type="button"
+                >
+                    <div className="status-content-wrapper">
+                        <span
+                            className="status-dot"
+                            style={{ backgroundColor: currentOption.color }}
+                        ></span>
+                        <span className="status-text">{currentOption.label}</span>
+                    </div>
+                    <span className={`dropdown-arrow ${isOpen ? 'rotate' : ''}`}>
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </span>
+                </button>
 
-            {isOpen && (
-                <div className="status-dropdown-menu">
-                    {statusOptions.map((option) => (
-                        <div
-                            key={option.value}
-                            className={`status-option-item ${currentStatus === option.value ? 'selected' : ''}`}
-                            onClick={() => {
-                                onStatusChange(option.value as any);
-                                setIsOpen(false);
-                            }}
-                        >
-                            <span
-                                className="option-dot"
-                                style={{ backgroundColor: option.color }}
-                            ></span>
-                            <span className="option-text">{option.label}</span>
-                            {currentStatus === option.value && (
-                                <span className="check-mark">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                </span>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                {isOpen && (
+                    <div className="status-dropdown-menu">
+                        {statusOptions.map((option) => (
+                            <div
+                                key={option.value}
+                                className={`status-option-item ${currentStatus === option.value ? 'selected' : ''}`}
+                                onClick={() => {
+                                    onStatusChange(option.value as any);
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <span
+                                    className="option-dot"
+                                    style={{ backgroundColor: option.color }}
+                                ></span>
+                                <span className="option-text">{option.label}</span>
+                                {currentStatus === option.value && (
+                                    <span className="check-mark">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <style jsx>{`
+                .status-dropdown-container {
+                    position: relative;
+                    min-width: 160px;
+                }
+                .status-trigger-btn {
+                    width: 100%;
+                    height: 38px;
+                    padding: 0 0.875rem;
+                    background: white;
+                    border: 1px solid #E5E7EB;
+                    border-radius: 9999px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    font-family: inherit;
+                }
+                .status-trigger-btn:hover {
+                    border-color: #D1D5DB;
+                    background: #F9FAFB;
+                    transform: translateY(-1px);
+                }
+                .status-trigger-btn.active {
+                    border-color: #3B82F6;
+                    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+                }
+                .status-content-wrapper {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .status-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    flex-shrink: 0;
+                }
+                .status-text {
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    color: #374151;
+                    white-space: nowrap;
+                }
+                .dropdown-arrow {
+                    color: #9CA3AF;
+                    display: flex;
+                    align-items: center;
+                    transition: transform 0.2s;
+                    margin-left: 0.5rem;
+                }
+                .dropdown-arrow.rotate { transform: rotate(180deg); }
+                .status-dropdown-menu {
+                    position: absolute;
+                    top: calc(100% + 6px);
+                    left: 0;
+                    width: 100%;
+                    min-width: 180px;
+                    background: white;
+                    border-radius: 12px;
+                    padding: 0.375rem;
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                    border: 1px solid #F3F4F6;
+                    z-index: 50;
+                    animation: fadeIn 0.15s ease-out;
+                }
+                .status-option-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.625rem 0.75rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                }
+                .status-option-item:hover { background: #F3F4F6; }
+                .status-option-item.selected { background: #F0FDF4; }
+                .option-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    flex-shrink: 0;
+                }
+                .option-text {
+                    font-size: 0.875rem;
+                    color: #374151;
+                    flex: 1;
+                    white-space: nowrap;
+                }
+                .check-mark {
+                    color: #10B981;
+                    display: flex;
+                    align-items: center;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-8px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
+        </>
     );
 };
+
+// Custom View Button Component
+const ViewButton = ({ onClick }: { onClick: () => void }) => (
+    <>
+        <button
+            className="btn-action-view"
+            onClick={onClick}
+            type="button"
+            title="View Details"
+        >
+            View
+        </button>
+        <style jsx>{`
+            .btn-action-view {
+                background: white;
+                border: 1px solid #D1D5DB;
+                color: #374151;
+                padding: 0.5rem 1.25rem;
+                border-radius: 9999px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                white-space: nowrap;
+                font-family: inherit;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 38px;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            }
+            .btn-action-view:hover {
+                border-color: #D1D5DB;
+                background: #F9FAFB;
+                color: #111827;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+        `}</style>
+    </>
+);
 
 export default function EmployeesPage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -112,24 +256,34 @@ export default function EmployeesPage() {
     });
 
     useEffect(() => {
-        fetchEmployees();
+        const unsubscribe = fetchEmployees();
+        return () => {
+            if (typeof unsubscribe === 'function') unsubscribe();
+        };
     }, []);
 
-    const fetchEmployees = async () => {
+    const fetchEmployees = () => {
         try {
-            const employeesSnapshot = await getDocs(collection(db, 'employees'));
-            const employeesData: Employee[] = employeesSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                totalBookings: doc.data().totalBookings || 0,
-                rating: doc.data().rating || 5.0,
-            } as Employee));
+            const unsubscribe = onSnapshot(collection(db, 'employees'), (snapshot) => {
+                const employeesData: Employee[] = snapshot.docs.map((doc: any) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    totalBookings: doc.data().totalBookings || 0,
+                    rating: doc.data().rating || 5.0,
+                } as Employee));
 
-            setEmployees(employeesData);
-            setLoading(false);
+                setEmployees(employeesData);
+                setLoading(false);
+            }, (error: any) => {
+                console.error('Error fetching employees:', error);
+                setLoading(false);
+            });
+
+            return unsubscribe;
         } catch (error) {
-            console.error('Error fetching employees:', error);
+            console.error('Error setting up employees listener:', error);
             setLoading(false);
+            return () => { };
         }
     };
 
@@ -248,13 +402,7 @@ export default function EmployeesPage() {
         ];
 
     const actions = (row: Employee) => (
-        <button
-            onClick={() => setSelectedEmployee(row)}
-            className="btn-action-view"
-            title="View Details"
-        >
-            View
-        </button>
+        <ViewButton onClick={() => setSelectedEmployee(row)} />
     );
 
     const filteredEmployees = filterStatus === 'all'
@@ -318,13 +466,7 @@ export default function EmployeesPage() {
                         <div className="stat-label">Available Now</div>
                     </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-icon-wrapper purple">📊</div>
-                    <div className="stat-info">
-                        <div className="stat-value">{employees.reduce((sum, e) => sum + e.totalBookings, 0)}</div>
-                        <div className="stat-label">Total Bookings</div>
-                    </div>
-                </div>
+
                 <div className="stat-card">
                     <div className="stat-icon-wrapper yellow">⭐</div>
                     <div className="stat-info">
@@ -635,153 +777,9 @@ export default function EmployeesPage() {
                 .rating-cell { display: flex; align-items: center; gap: 0.3rem; }
                 .rating-star { color: #F59E0B; }
 
-                /* ------- STATUS DROPDOWN STYLES ------- */
-                .status-dropdown-container {
-                    position: relative;
-                    min-width: 160px; /* Ensure minimum width to prevent squashing */
-                }
+                /* ------- STATUS DROPDOWN STYLES MOVED TO COMPONENT ------- */
 
-                .status-trigger-btn {
-                    width: 100%;
-                    height: 38px; /* Fixed height for consistency */
-                    padding: 0 0.875rem;
-                    background: white;
-                    border: 1px solid #E5E7EB;
-                    border-radius: 9999px; /* Pill shape */
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-                    font-family: inherit;
-                }
-
-                .status-trigger-btn:hover {
-                    border-color: #D1D5DB;
-                    background: #F9FAFB;
-                    transform: translateY(-1px);
-                }
-
-                .status-trigger-btn.active {
-                    border-color: #3B82F6;
-                    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-                }
-
-                .status-content-wrapper {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                }
-
-                .status-dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    flex-shrink: 0;
-                }
-
-                .status-text {
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    color: #374151;
-                    white-space: nowrap;
-                }
-
-                .dropdown-arrow {
-                    color: #9CA3AF;
-                    display: flex;
-                    align-items: center;
-                    transition: transform 0.2s;
-                    margin-left: 0.5rem;
-                }
-
-                .dropdown-arrow.rotate {
-                    transform: rotate(180deg);
-                }
-
-                .status-dropdown-menu {
-                    position: absolute;
-                    top: calc(100% + 6px);
-                    left: 0;
-                    width: 100%;
-                    min-width: 180px;
-                    background: white;
-                    border-radius: 12px;
-                    padding: 0.375rem;
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                    border: 1px solid #F3F4F6;
-                    z-index: 50;
-                    animation: fadeIn 0.15s ease-out;
-                }
-
-                .status-option-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.625rem 0.75rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    transition: all 0.15s ease;
-                }
-
-                .status-option-item:hover {
-                    background: #F3F4F6;
-                }
-
-                .status-option-item.selected {
-                    background: #F0FDF4;
-                }
-
-                .option-dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    flex-shrink: 0;
-                }
-
-                .option-text {
-                    font-size: 0.875rem;
-                    color: #374151;
-                    flex: 1;
-                    white-space: nowrap;
-                }
-
-                .check-mark {
-                    color: #10B981;
-                    display: flex;
-                    align-items: center;
-                }
-
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-8px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                /* ------- ACTION BUTTON STYLES ------- */
-                .btn-action-view {
-                    background: white;
-                    border: 1px solid #D1D5DB;
-                    color: #374151;
-                    padding: 0.4rem 1rem;
-                    border-radius: 6px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    white-space: nowrap;
-                    font-family: inherit;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    height: 32px;
-                }
-
-                .btn-action-view:hover {
-                    border-color: #9CA3AF;
-                    background: #F9FAFB;
-                    color: #111827;
-                }
+                /* ------- ACTION BUTTON STYLES MOVED TO COMPONENT ------- */
 
                 /* Modal Form Grid */
                 .form-grid {

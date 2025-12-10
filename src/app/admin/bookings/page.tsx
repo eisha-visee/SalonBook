@@ -54,56 +54,199 @@ const StatusDropdown = ({ currentStatus, onStatusChange }: { currentStatus: stri
     }, []);
 
     return (
-        <div className="status-dropdown-container" ref={dropdownRef}>
-            <button
-                className={`status-trigger-btn ${isOpen ? 'active' : ''}`}
-                onClick={() => setIsOpen(!isOpen)}
-                type="button"
-            >
-                <div className="status-content-wrapper">
-                    <span
-                        className="status-dot"
-                        style={{ backgroundColor: currentOption.color }}
-                    ></span>
-                    <span className="status-text">{currentOption.label}</span>
-                </div>
-                <span className={`dropdown-arrow ${isOpen ? 'rotate' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                </span>
-            </button>
+        <>
+            <div className="status-dropdown-container" ref={dropdownRef}>
+                <button
+                    className={`status-trigger-btn ${isOpen ? 'active' : ''}`}
+                    onClick={() => setIsOpen(!isOpen)}
+                    type="button"
+                >
+                    <div className="status-content-wrapper">
+                        <span
+                            className="status-dot"
+                            style={{ backgroundColor: currentOption.color }}
+                        ></span>
+                        <span className="status-text">{currentOption.label}</span>
+                    </div>
+                    <span className={`dropdown-arrow ${isOpen ? 'rotate' : ''}`}>
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </span>
+                </button>
 
-            {isOpen && (
-                <div className="status-dropdown-menu">
-                    {statusOptions.map((option) => (
-                        <div
-                            key={option.value}
-                            className={`status-option-item ${currentStatus === option.value ? 'selected' : ''}`}
-                            onClick={() => {
-                                onStatusChange(option.value);
-                                setIsOpen(false);
-                            }}
-                        >
-                            <span
-                                className="option-dot"
-                                style={{ backgroundColor: option.color }}
-                            ></span>
-                            <span className="option-text">{option.label}</span>
-                            {currentStatus === option.value && (
-                                <span className="check-mark">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                </span>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                {isOpen && (
+                    <div className="status-dropdown-menu">
+                        {statusOptions.map((option) => (
+                            <div
+                                key={option.value}
+                                className={`status-option-item ${currentStatus === option.value ? 'selected' : ''}`}
+                                onClick={() => {
+                                    onStatusChange(option.value);
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <span
+                                    className="option-dot"
+                                    style={{ backgroundColor: option.color }}
+                                ></span>
+                                <span className="option-text">{option.label}</span>
+                                {currentStatus === option.value && (
+                                    <span className="check-mark">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <style jsx>{`
+                .status-dropdown-container {
+                    position: relative;
+                    min-width: 160px;
+                }
+                .status-trigger-btn {
+                    width: 100%;
+                    height: 38px;
+                    padding: 0 0.875rem;
+                    background: white;
+                    border: 1px solid #E5E7EB;
+                    border-radius: 9999px; /* Pill shape */
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    font-family: inherit;
+                }
+                .status-trigger-btn:hover {
+                    border-color: #D1D5DB;
+                    background: #F9FAFB;
+                    transform: translateY(-1px);
+                }
+                .status-trigger-btn.active {
+                    border-color: #3B82F6;
+                    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+                }
+                .status-content-wrapper {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .status-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    flex-shrink: 0;
+                }
+                .status-text {
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    color: #374151;
+                    white-space: nowrap;
+                }
+                .dropdown-arrow {
+                    color: #9CA3AF;
+                    display: flex;
+                    align-items: center;
+                    transition: transform 0.2s;
+                    margin-left: 0.5rem;
+                }
+                .dropdown-arrow.rotate { transform: rotate(180deg); }
+                .status-dropdown-menu {
+                    position: absolute;
+                    top: calc(100% + 6px);
+                    left: 0;
+                    width: 100%;
+                    min-width: 180px;
+                    background: white;
+                    border-radius: 12px;
+                    padding: 0.375rem;
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                    border: 1px solid #F3F4F6;
+                    z-index: 50;
+                    animation: fadeIn 0.15s ease-out;
+                }
+                .status-option-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.625rem 0.75rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                }
+                .status-option-item:hover { background: #F3F4F6; }
+                .status-option-item.selected { background: #F0FDF4; }
+                .option-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    flex-shrink: 0;
+                }
+                .option-text {
+                    font-size: 0.875rem;
+                    color: #374151;
+                    flex: 1;
+                    white-space: nowrap;
+                }
+                .check-mark {
+                    color: #10B981;
+                    display: flex;
+                    align-items: center;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-8px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
+        </>
     );
 };
+
+// Custom Assign Button Component
+const AssignButton = ({ onClick }: { onClick: () => void }) => (
+    <>
+        <button
+            className="btn-action-assign"
+            onClick={onClick}
+            type="button"
+        >
+            Assign
+        </button>
+        <style jsx>{`
+            .btn-action-assign {
+                background: white;
+                border: 1px solid #D1D5DB;
+                color: #374151;
+                padding: 0.5rem 1.25rem;
+                border-radius: 9999px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                white-space: nowrap;
+                font-family: inherit;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 38px;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            }
+            .btn-action-assign:hover {
+                border-color: #D1D5DB;
+                background: #F9FAFB;
+                color: #111827;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+        `}</style>
+    </>
+);
 
 export default function BookingsPage() {
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -161,12 +304,20 @@ export default function BookingsPage() {
         if (!selectedBookingId) return;
 
         try {
+            // 1. Update Booking
             await updateDoc(doc(db, 'bookings', selectedBookingId), {
                 assignedEmployeeId: employee.id,
                 assignedEmployeeName: employee.name,
                 status: 'assigned',
                 updatedAt: Timestamp.now()
             });
+
+            // 2. Update Employee Status to Busy
+            await updateDoc(doc(db, 'employees', employee.id), {
+                status: 'busy',
+                updatedAt: Timestamp.now()
+            });
+
             console.log('✅ Employee assigned successfully:', employee.name);
         } catch (error) {
             console.error('Error assigning employee:', error);
@@ -265,13 +416,7 @@ export default function BookingsPage() {
 
     const actions = (row: Booking) => (
         <div className="action-buttons">
-            <button
-                className="btn-action-assign"
-                onClick={() => handleAssignEmployee(row.id)}
-                title="Assign / Reassign Employee"
-            >
-                Assign
-            </button>
+            <AssignButton onClick={() => handleAssignEmployee(row.id)} />
         </div>
     );
 
@@ -291,15 +436,12 @@ export default function BookingsPage() {
     return (
         <div className="bookings-page">
             <div className="page-header">
-                <div>
+                <div className="bookings-title">
                     <h1>Bookings</h1>
                     <p className="page-subtitle">
                         Manage your salon schedules and assignments
                     </p>
                 </div>
-                <button className="btn-export">
-                    <span>↓</span> Export CSV
-                </button>
             </div>
 
             {/* Filter Tabs */}
@@ -478,153 +620,9 @@ export default function BookingsPage() {
                     font-size: 0.85rem;
                 }
 
-                /* ------- STATUS DROPDOWN STYLES ------- */
-                .status-dropdown-container {
-                    position: relative;
-                    min-width: 160px; /* Ensure minimum width to prevent squashing */
-                }
+                /* ------- STATUS DROPDOWN STYLES MOVED TO COMPONENT ------- */
 
-                .status-trigger-btn {
-                    width: 100%;
-                    height: 38px; /* Fixed height for consistency */
-                    padding: 0 0.875rem;
-                    background: white;
-                    border: 1px solid #E5E7EB;
-                    border-radius: 9999px; /* Pill shape */
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-                    font-family: inherit;
-                }
-
-                .status-trigger-btn:hover {
-                    border-color: #D1D5DB;
-                    background: #F9FAFB;
-                    transform: translateY(-1px);
-                }
-
-                .status-trigger-btn.active {
-                    border-color: #3B82F6;
-                    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-                }
-
-                .status-content-wrapper {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                }
-
-                .status-dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    flex-shrink: 0; /* Prevent dot from shrinking */
-                }
-
-                .status-text {
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    color: #374151;
-                    white-space: nowrap; /* Prevent text wrapping */
-                }
-
-                .dropdown-arrow {
-                    color: #9CA3AF;
-                    display: flex;
-                    align-items: center;
-                    transition: transform 0.2s;
-                    margin-left: 0.5rem;
-                }
-
-                .dropdown-arrow.rotate {
-                    transform: rotate(180deg);
-                }
-
-                .status-dropdown-menu {
-                    position: absolute;
-                    top: calc(100% + 6px);
-                    left: 0;
-                    width: 100%;
-                    min-width: 180px; /* Menu slightly wider than trigger */
-                    background: white;
-                    border-radius: 12px;
-                    padding: 0.375rem;
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                    border: 1px solid #F3F4F6;
-                    z-index: 50;
-                    animation: fadeIn 0.15s ease-out;
-                }
-
-                .status-option-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.625rem 0.75rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    transition: all 0.15s ease;
-                }
-
-                .status-option-item:hover {
-                    background: #F3F4F6;
-                }
-
-                .status-option-item.selected {
-                    background: #F0FDF4; /* Light hint of green */
-                }
-
-                .option-dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    flex-shrink: 0;
-                }
-
-                .option-text {
-                    font-size: 0.875rem;
-                    color: #374151;
-                    flex: 1;
-                    white-space: nowrap;
-                }
-
-                .check-mark {
-                    color: #10B981;
-                    display: flex;
-                    align-items: center;
-                }
-
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-8px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                /* ------- ACTION BUTTON STYLES ------- */
-                .btn-action-assign {
-                    background: white;
-                    border: 1px solid #D1D5DB;
-                    color: #374151;
-                    padding: 0.4rem 1rem;
-                    border-radius: 6px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    white-space: nowrap;
-                    font-family: inherit;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    height: 32px;
-                }
-
-                .btn-action-assign:hover {
-                    border-color: #9CA3AF;
-                    background: #F9FAFB;
-                    color: #111827;
-                }
+                /* ------- ACTION BUTTON STYLES MOVED TO COMPONENT ------- */
 
                 /* ------- OTHER STYLES ------- */
                 .employee-badge {
