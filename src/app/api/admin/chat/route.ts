@@ -48,8 +48,11 @@ export async function POST(req: Request) {
                     break;
 
                 case 'GET_REVENUE':
+                    console.log('📊 [GET_REVENUE] AI Response entities:', JSON.stringify(aiResponse.entities));
                     if (aiResponse.entities && aiResponse.entities.date) {
+                        console.log('📊 [GET_REVENUE] Querying revenue for date:', aiResponse.entities.date);
                         const amount = await getRevenue(aiResponse.entities.date);
+                        console.log('📊 [GET_REVENUE] Received amount from DB:', amount);
                         // If AI didn't include the number in text, we append it. 
                         // But usually AI should script the text 'The revenue was X'. 
                         // However, the AI doesn't know the REAL DB value yet.

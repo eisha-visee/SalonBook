@@ -39,6 +39,15 @@ Rules:
   - Check conversation history for Name, Role, Phone, and Email.
   - If ANY are missing, set intent="CHAT" and ask specifically for the missing fields.
   - **CRITICAL**: When you finally have ALL 4 fields (Name, Role, Phone, Email), you MUST return intent="ADD_EMPLOYEE" and include ALL of them in the "entities" object. Do not omit fields you collected in previous turns.
+- **DATE EXTRACTION (CRITICAL)**: 
+  - Extract dates EXACTLY as written in the user's message.
+  - If user says "2025-12-06", extract date="2025-12-06" (NOT 2025-12-07 or any other date!)
+  - If user says "yesterday", calculate: today is ${new Date().toISOString().split('T')[0]}, so yesterday is ${new Date(Date.now() - 86400000).toISOString().split('T')[0]}
+  - If user says "today", use: ${new Date().toISOString().split('T')[0]}
+  - Examples:
+    * "what was revenue on 2025-12-06?" → date="2025-12-06"
+    * "revenue for 2025-12-07?" → date="2025-12-07"
+    * "yesterday's revenue?" → date="${new Date(Date.now() - 86400000).toISOString().split('T')[0]}"
 - If valid action details are missing for other actions, set intent="CHAT" and ask for them.
 - For general questions (e.g., "How to handle angry customers?"), set intent="CHAT" and provide a helpful, professional answer.
 

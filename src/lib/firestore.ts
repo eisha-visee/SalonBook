@@ -200,18 +200,42 @@ export const createEmployee = async (employeeData: any) => {
 export const getRevenue = async (date: string) => {
     // date format: YYYY-MM-DD
     try {
+        console.log('🔍 [getRevenue] Querying revenue for date:', date);
+
+        // Firestore stores 'date' as a Timestamp, not a string!
+        // Convert "2025-12-06" to Timestamp range (start and end of day)
+        const dateObj = new Date(date + 'T00:00:00');
+        const startOfDay = Timestamp.fromDate(dateObj);
+        const endOfDay = Timestamp.fromDate(new Date(date + 'T23:59:59'));
+
+        console.log('🔍 [getRevenue] Querying with Timestamp range:', {
+            start: startOfDay.toDate().toISOString(),
+            end: endOfDay.toDate().toISOString()
+        });
+
         const q = query(
             collection(db, 'daily_revenue'),
-            where('date', '==', date)
+            where('date', '>=', startOfDay),
+            where('date', '<=', endOfDay)
         );
         const querySnapshot = await getDocs(q);
+
+        console.log('🔍 [getRevenue] Query returned', querySnapshot.size, 'documents');
+
         if (querySnapshot.empty) {
+            console.log('⚠️ [getRevenue] No documents found for date:', date);
             return 0;
         }
-        // Assuming one document per day
-        return querySnapshot.docs[0].data().totalAmount || 0;
+
+        const docData = querySnapshot.docs[0].data();
+        console.log('🔍 [getRevenue] Document data:', JSON.stringify(docData, null, 2));
+
+        const revenue = docData.totalRevenue || 0;
+        console.log('✅ [getRevenue] Returning revenue:', revenue);
+
+        return revenue;
     } catch (error) {
-        console.error('Error getting revenue:', error);
+        console.error('❌ [getRevenue] Error getting revenue:', error);
         throw error;
     }
 };
